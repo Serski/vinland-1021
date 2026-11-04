@@ -1,0 +1,14 @@
+{
+  "name": "vinland-1021",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An idle game in four voyages from the Saga of the Greenlanders.",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "sim": "node tests/sim.js",
+    "test": "node tests/play.js"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

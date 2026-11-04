@@ -1,0 +1,2842 @@
+<!doctype html>
+<!-- Generated from src/game.html by tools/build.mjs. Edit the source, then run: node tools/build.mjs -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>
+<title>Vinland 1021</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A small idle game about Leif Eriksson's camp in Newfoundland, around the year 1000.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Runic&display=swap">
+<style>
+:root {
+  /* Layout: the camp is a lit window at the top, the saga runs under it like a line of manuscript,
+     and the work ledger sits below it on phones and beside it on wide screens.
+     One deliberate look: a North Atlantic night, lit by a hearth. */
+  --night: #0f181d;
+  --hull: #15222a;
+  --hull-2: #1a2a33;
+  --line: #2a3d47;
+  --bone: #ece4d3;
+  --bone-dim: #a2aaa3;
+  --ember: #e9a45b;
+  --ember-deep: #b5732f;
+  --on-ember: #1d1409;
+  --moss: #a8c174;
+  --rust: #e07856;
+  --frost: #a9cbd8;
+  --ochre: #b4503a;
+  --groove: #2b2724;
+  --stone: #66615a;
+  --stone-hi: #7e7972;
+  --stone-lo: #4a4641;
+  --stone-dim: rgba(240, 234, 222, 0.8);
+  --frame-line: rgba(236, 228, 211, 0.12);
+  --bevel-hi: rgba(255, 255, 255, 0.3);
+  --bevel-lo: rgba(0, 0, 0, 0.2);
+  --ink: #1f0c08;
+  --ink-lift: rgba(255, 214, 190, 0.22);
+  --chip-bg: rgba(11, 18, 23, 0.7);
+  --scrim: rgba(8, 13, 16, 0.88);
+  --card-bg: rgba(17, 28, 35, 0.95);
+  --shadow: rgba(0, 0, 0, 0.6);
+  --font-saga: "Alegreya", "Noto Sans Runic", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-sc: "Alegreya SC", "Alegreya", "Noto Sans Runic", Georgia, serif;
+  --font-ui: "Alegreya Sans", "Noto Sans Runic", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+  --font-rune: "Noto Sans Runic", "Segoe UI Historic", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html { height: 100%; box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  height: 100%; margin: 0; overflow: hidden;
+  background: var(--night); color: var(--bone);
+  font: 15px/1.4 var(--font-ui);
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+
+/* ---------- app frame ---------- */
+#app {
+  height: 100%; max-width: 640px; margin: 0 auto;
+  display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); gap: 8px;
+  padding-block: 8px 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+#top { display: grid; gap: 4px; }
+.season-row { display: flex; align-items: center; gap: 10px; min-height: 38px; }
+.season-name { font-family: var(--font-sc); font-weight: 700; font-size: 20px; letter-spacing: 0.05em; }
+.season-year { font-family: var(--font-sc); font-size: 15px; letter-spacing: 0.06em; color: var(--bone-dim); }
+.spacer { flex: 1; }
+.icon-btn {
+  width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--hull); color: var(--bone);
+}
+.icon-btn svg { width: 20px; height: 20px; }
+.res-row { display: flex; flex-wrap: wrap; gap: 2px 16px; min-height: 24px; }
+.res { display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums lining-nums; }
+.res .lbl { font-family: var(--font-sc); font-size: 13px; letter-spacing: 0.06em; color: var(--bone-dim); }
+.res b { font-size: 18px; font-weight: 700; }
+.res i { font-style: normal; font-size: 12.5px; color: var(--moss); }
+.res i.neg { color: var(--rust); }
+.res i:empty { display: none; }
+
+/* ---------- the camp window ---------- */
+.stage {
+  position: relative; height: clamp(170px, 31vh, 400px);
+  border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--hull);
+  user-select: none; -webkit-user-select: none; touch-action: manipulation;
+}
+@supports (height: 1dvh) { .stage { height: clamp(170px, 31dvh, 400px); } }
+#scene { display: block; width: 100%; height: 100%; }
+.chips { position: absolute; left: 8px; right: 8px; top: 8px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.chip {
+  font-size: 12.5px; line-height: 1.2; padding: 4px 9px; border-radius: 999px;
+  background: var(--chip-bg); color: var(--bone); border: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.chip.warn { color: var(--rust); border-color: var(--rust); }
+.chip.frost { color: var(--frost); }
+.chip.clock { margin-left: auto; color: var(--bone-dim); }
+.hint-chip {
+  position: absolute; left: 50%; bottom: 9px; transform: translateX(-50%);
+  max-width: calc(100% - 20px); width: max-content; text-align: center; pointer-events: none;
+  font-size: 13.5px; line-height: 1.25; padding: 5px 11px; border-radius: 999px;
+  background: var(--chip-bg); color: var(--ember); border: 1px solid var(--ember-deep);
+}
+.hint-chip:empty { display: none; }
+.floaters { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.floater {
+  position: absolute; transform: translate(-50%, -50%);
+  font: 700 17px var(--font-ui); color: var(--bone); text-shadow: 0 0 3px var(--shadow), 0 1px 3px var(--shadow), 0 0 10px var(--shadow);
+  animation: floatUp 0.9s ease-out forwards;
+}
+@keyframes floatUp { from { opacity: 1; transform: translate(-50%, -50%); } to { opacity: 0; transform: translate(-50%, -200%); } }
+
+/* ---------- saga line ---------- */
+.saga { height: 68px; cursor: pointer; border-radius: 8px; overflow: hidden; }
+.saga-line {
+  margin: 0; font-family: var(--font-saga); font-size: 16.5px; line-height: 1.36; color: var(--bone);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-wrap: pretty;
+}
+.saga-line.in { animation: sagaIn 0.6s ease-out; }
+@keyframes sagaIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+/* ---------- ledger ---------- */
+.side { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-height: 0; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); }
+.tabs button {
+  position: relative; background: none; border: 0; cursor: pointer;
+  padding: 9px 12px 8px; margin-bottom: -1px; border-bottom: 2px solid transparent;
+  font-family: var(--font-sc); font-size: 16px; letter-spacing: 0.04em; color: var(--bone-dim);
+}
+.tabs button.on { color: var(--bone); border-bottom-color: var(--ember); }
+.tabs .dot { position: absolute; top: 7px; right: 2px; width: 7px; height: 7px; border-radius: 50%; background: var(--ember); display: none; }
+.tabs button.badge .dot { display: block; }
+.panel { overflow-y: auto; min-height: 0; padding-block: 2px 28px; overscroll-behavior: contain; }
+.row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px;
+  padding-block: 11px; border-bottom: 1px solid var(--line);
+}
+.row-main { min-width: 0; }
+.row-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 9px; font-family: var(--font-saga); font-size: 17.5px; font-weight: 500; line-height: 1.2; }
+.count { font-family: var(--font-ui); font-weight: 700; font-size: 15px; color: var(--ember); font-variant-numeric: tabular-nums; }
+.new { font-family: var(--font-sc); font-size: 11.5px; letter-spacing: 0.08em; color: var(--on-ember); background: var(--ember); border-radius: 4px; padding: 0 6px; }
+.row-desc { margin: 3px 0 0; color: var(--bone-dim); font-size: 14px; line-height: 1.36; }
+.buy {
+  min-width: 100px; min-height: 48px; display: grid; justify-items: center; align-content: center; gap: 1px;
+  padding: 5px 12px; border-radius: 10px; cursor: pointer; touch-action: manipulation;
+  border: 1px solid var(--ember-deep); background: var(--ember); color: var(--on-ember);
+  transition: transform 0.08s ease;
+}
+.buy:active { transform: scale(0.96); }
+.buy.off { background: transparent; color: var(--bone-dim); border-color: var(--line); }
+.buy.off:active { transform: none; }
+.b-label { font-weight: 700; font-size: 15px; line-height: 1.15; }
+.b-cost { font-size: 12.5px; line-height: 1.15; font-variant-numeric: tabular-nums; opacity: 0.9; }
+.b-cost:empty { display: none; }
+.buy.shake { animation: shake 0.32s; }
+@keyframes shake { 25% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
+.bar { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 8px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--ember); transition: width 0.25s linear; }
+.summary { padding-block: 11px; border-bottom: 1px solid var(--line); }
+.sum-text { margin: 0; font-size: 14.5px; color: var(--bone); }
+.sec { margin: 18px 0 2px; font-family: var(--font-sc); font-weight: 500; font-size: 14px; letter-spacing: 0.08em; color: var(--bone-dim); }
+.disc { display: grid; gap: 1px; padding-block: 9px; border-bottom: 1px dashed var(--line); }
+.disc-t { font-family: var(--font-saga); font-size: 16.5px; }
+.disc-d { color: var(--bone-dim); font-size: 14px; }
+.disc.dim .disc-t { color: var(--bone-dim); font-style: italic; }
+.done { margin: 14px 0 0; color: var(--bone-dim); font-size: 13.5px; }
+.cargo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+.cargo-grid div { display: grid; gap: 1px; }
+.cargo-grid .k { font-family: var(--font-sc); font-size: 12.5px; letter-spacing: 0.06em; color: var(--bone-dim); }
+.cargo-grid b { font-size: 19px; font-variant-numeric: tabular-nums; }
+.cargo-grid .val b { color: var(--ember); }
+.sail { padding-block: 14px 4px; display: grid; gap: 10px; }
+.sail-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.buy.big { min-width: 170px; min-height: 52px; }
+.ghost { min-height: 52px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--line); background: none; cursor: pointer; }
+
+/* ---------- theater: title, voyage, epilogue ---------- */
+#theater { position: fixed; inset: 0; z-index: 40; background: var(--night); overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+#tcanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.t-top {
+  position: absolute; left: 0; right: 0; top: 0; text-align: center; pointer-events: none;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 22px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.t-year {
+  font-family: var(--font-saga); font-weight: 500; font-size: clamp(54px, 15vw, 112px); line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums; color: var(--bone); text-shadow: 0 2px 30px var(--shadow);
+}
+.t-year:empty { display: none; }
+.t-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0; display: grid; justify-items: center; gap: 14px; text-align: center;
+  padding-top: 90px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 26px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(to top, var(--scrim) 0%, var(--scrim) 45%, transparent 100%);
+}
+.t-text {
+  max-width: 32ch; min-height: 2.8em; font-family: var(--font-saga); font-size: clamp(19px, 1.2vw + 15px, 26px); line-height: 1.4;
+  text-wrap: balance; text-shadow: 0 1px 10px var(--shadow);
+}
+.t-text.in { animation: sagaIn 0.7s ease-out; }
+.t-text .mine { display: block; margin-top: 6px; color: var(--ember); font-style: italic; font-size: 0.85em; }
+.t-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.t-actions:empty { display: none; }
+.t-hint { font-family: var(--font-sc); font-size: 14px; letter-spacing: 0.1em; color: var(--bone-dim); min-height: 1.3em; animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.45; } }
+.t-card {
+  position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; overflow-y: auto;
+  padding-block: calc(env(safe-area-inset-top, 0px) + 24px) calc(env(safe-area-inset-bottom, 0px) + 24px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.card-inner { width: min(460px, 100%); display: grid; gap: 14px; justify-items: center; text-align: center; }
+.title-num {
+  font-family: var(--font-saga); font-weight: 500; font-size: clamp(96px, 30vw, 200px); line-height: 0.86;
+  font-variant-numeric: lining-nums; letter-spacing: -0.01em; color: var(--bone); text-shadow: 0 6px 50px var(--shadow);
+}
+.runes { font-family: var(--font-rune); font-size: 18px; letter-spacing: 0.55em; margin-right: -0.55em; color: var(--ember); }
+.title-sub { margin: 0; font-family: var(--font-saga); font-style: italic; font-size: 22px; }
+.title-note { margin: 0; color: var(--bone-dim); font-size: 13.5px; }
+.t-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; }
+.tbtn {
+  min-height: 50px; padding: 0 22px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px;
+  border: 1px solid var(--line); background: var(--card-bg); color: var(--bone);
+}
+.tbtn.primary { background: var(--ember); border-color: var(--ember-deep); color: var(--on-ember); }
+.summary-card { width: min(460px, 100%); background: var(--card-bg); border: 1px solid var(--line); border-radius: 16px; padding: 22px 20px 20px; display: grid; gap: 14px; }
+.eyebrow { margin: 0; font-family: var(--font-sc); font-size: 13.5px; letter-spacing: 0.1em; color: var(--ember); }
+.summary-card h2 { margin: 0; font-family: var(--font-saga); font-weight: 500; font-size: 28px; line-height: 1.15; text-wrap: balance; }
+.tally { margin: 0; display: grid; }
+.tally div { display: flex; justify-content: space-between; gap: 12px; padding-block: 7px; border-bottom: 1px solid var(--line); }
+.tally dt { color: var(--bone-dim); }
+.tally dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tally .total { border-bottom: 0; padding-top: 10px; }
+.tally .total dt { color: var(--bone); font-family: var(--font-sc); letter-spacing: 0.06em; font-size: 16px; }
+.tally .total dd { color: var(--ember); font-size: 22px; }
+.note { margin: 0; color: var(--bone-dim); font-size: 14px; }
+
+/* ---------- sheet: menu and saga log ---------- */
+#sheet { position: fixed; inset: 0; z-index: 60; background: var(--scrim); display: grid; align-items: end; justify-items: center; }
+.sheet-card {
+  width: min(560px, 100%); max-height: 82%; overflow-y: auto; background: var(--hull);
+  border: 1px solid var(--line); border-bottom: 0; border-radius: 16px 16px 0 0;
+  padding-block: 18px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+}
+.sheet-card h2 { margin: 0 0 10px; font-family: var(--font-saga); font-weight: 500; font-size: 24px; }
+.sheet-card p { color: var(--bone-dim); }
+.menu-list { display: grid; gap: 8px; }
+.menu-list button, .sheet-btns button {
+  min-height: 48px; text-align: left; padding: 0 16px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--hull-2); font-size: 16px;
+}
+.sheet-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.sheet-btns .danger { border-color: var(--rust); color: var(--rust); }
+.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.log li { font-family: var(--font-saga); font-size: 16px; line-height: 1.4; }
+.log .when { display: block; font-family: var(--font-sc); font-size: 12px; letter-spacing: 0.08em; color: var(--bone-dim); }
+.help { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--bone); }
+
+/* ---------- Norse ornament: runes, plaited bands, a painted runestone ---------- */
+.season-rune { font-family: var(--font-rune); font-size: 22px; line-height: 1; color: var(--ember); min-width: 0.9em; text-align: center; cursor: default; }
+.sep { font-family: var(--font-rune); color: var(--ochre); font-size: 15px; }
+.plait, .side::before { height: 12px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cg fill='none'%3E%3Cpath d='M0 9.4 C4 9.4 8 2.6 12 2.6' stroke='%230f181d' stroke-width='4.4'/%3E%3Cpath d='M0 9.4 C4 9.4 8 2.6 12 2.6' stroke='%23b4503a' stroke-width='2.4'/%3E%3Cpath d='M0 2.6 C4 2.6 8 9.4 12 9.4' stroke='%230f181d' stroke-width='4.4'/%3E%3Cpath d='M0 2.6 C4 2.6 8 9.4 12 9.4' stroke='%23b4503a' stroke-width='2.4'/%3E%3Cpath d='M12 9.4 C16 9.4 20 2.6 24 2.6' stroke='%230f181d' stroke-width='4.4'/%3E%3Cpath d='M12 9.4 C16 9.4 20 2.6 24 2.6' stroke='%23b4503a' stroke-width='2.4'/%3E%3Cpath d='M12 2.6 C16 2.6 20 9.4 24 9.4' stroke='%230f181d' stroke-width='4.4'/%3E%3Cpath d='M12 2.6 C16 2.6 20 9.4 24 9.4' stroke='%23b4503a' stroke-width='2.4'/%3E%3C/g%3E%3C/svg%3E") repeat-x left center / 24px 12px; }
+.side::before { content: ""; margin-bottom: 2px; opacity: 0.75; }
+.card-inner .plait { width: min(260px, 72%); }
+.t-hint:not(:empty)::before, .t-hint:not(:empty)::after { font-family: var(--font-rune); color: var(--ochre); }
+.t-hint:not(:empty)::before { content: "᛫ "; }
+.t-hint:not(:empty)::after { content: " ᛫"; }
+.stage::after { content: ""; position: absolute; inset: 4px; border: 1px solid var(--frame-line); border-radius: 10px; pointer-events: none; }
+.buy:not(.off) { box-shadow: inset 0 1px 0 var(--bevel-hi), inset 0 -2px 0 var(--bevel-lo); }
+.title-num { text-shadow: 0 -1px 0 var(--bevel-lo), 0 1px 0 var(--frame-line), 0 6px 50px var(--shadow); }
+.stone-wrap { width: min(400px, 100%); display: grid; gap: 14px; justify-items: center; text-align: center; }
+.stone {
+  position: relative; width: 100%; padding: 76px 34px 46px;
+  border-radius: 50% 50% 14px 14px / 22% 22% 14px 14px;
+  background-color: var(--stone);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"), linear-gradient(165deg, var(--stone-hi), var(--stone) 55%, var(--stone-lo));
+  background-size: 180px 180px, 100% 100%;
+  box-shadow: 0 24px 60px var(--shadow), inset 0 2px 0 var(--frame-line), inset 0 -8px 22px var(--bevel-lo);
+}
+.stone-band { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.sb-edge, .sb-fill { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.sb-edge { stroke: var(--groove); stroke-width: 10px; }
+.sb-fill { stroke: var(--ochre); stroke-width: 5.5px; }
+.sb-head { fill: var(--ochre); stroke: var(--groove); stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.sb-eye { fill: var(--groove); }
+.stone-inner { position: relative; display: grid; gap: 10px; }
+.stone-runes { font-family: var(--font-rune); font-size: 17px; letter-spacing: 0.35em; margin-right: -0.35em; color: var(--groove); text-shadow: 0 1px 0 var(--frame-line); }
+.stone .eyebrow { color: var(--bone); opacity: 0.85; }
+.stone h2 { margin: 0; font-family: var(--font-saga); font-weight: 500; font-size: 27px; line-height: 1.15; text-wrap: balance; text-shadow: 0 1px 0 var(--bevel-lo); }
+.stone .tally { text-align: left; }
+.stone .tally div { border-bottom: 1px solid var(--bevel-lo); box-shadow: 0 1px 0 var(--frame-line); }
+.stone .tally dt { color: var(--stone-dim); }
+.stone .tally .total { border-bottom: 0; box-shadow: none; }
+.stone .tally .total dt, .stone .tally .total dd { color: var(--bone); }
+.stone .tally .total dd { font-size: 26px; }
+.stone-wrap .note { color: var(--bone); text-shadow: 0 1px 8px var(--shadow); background: var(--chip-bg); padding: 6px 12px; border-radius: 10px; }
+.t-card.poster { place-items: stretch; }
+.poster-inner { width: min(560px, 100%); min-height: 100%; margin: 0 auto; display: grid; align-content: space-between; justify-items: center; gap: 24px; text-align: center; }
+.poster-top, .poster-bottom { display: grid; justify-items: center; gap: 10px; }
+.poster-top .plait { width: min(260px, 72%); }
+.plait.ink { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cg fill='none'%3E%3Cpath d='M0 9.4 C4 9.4 8 2.6 12 2.6' stroke='%23d66c48' stroke-width='4.4'/%3E%3Cpath d='M0 9.4 C4 9.4 8 2.6 12 2.6' stroke='%231f0c08' stroke-width='2.4'/%3E%3Cpath d='M0 2.6 C4 2.6 8 9.4 12 9.4' stroke='%23d66c48' stroke-width='4.4'/%3E%3Cpath d='M0 2.6 C4 2.6 8 9.4 12 9.4' stroke='%231f0c08' stroke-width='2.4'/%3E%3Cpath d='M12 9.4 C16 9.4 20 2.6 24 2.6' stroke='%23d66c48' stroke-width='4.4'/%3E%3Cpath d='M12 9.4 C16 9.4 20 2.6 24 2.6' stroke='%231f0c08' stroke-width='2.4'/%3E%3Cpath d='M12 2.6 C16 2.6 20 9.4 24 9.4' stroke='%23d66c48' stroke-width='4.4'/%3E%3Cpath d='M12 2.6 C16 2.6 20 9.4 24 9.4' stroke='%231f0c08' stroke-width='2.4'/%3E%3C/g%3E%3C/svg%3E"); }
+.poster .title-num { color: var(--ink); text-shadow: 0 1px 0 var(--ink-lift); }
+.poster .runes, .poster .title-sub { color: var(--ink); }
+.poster .title-sub { font-weight: 500; }
+.poster-bottom .title-note { color: var(--bone); max-width: 36ch; text-shadow: 0 1px 6px var(--shadow); }
+
+/* ---------- chapters: goals, meters, the saga's choices ---------- */
+.goals { padding-block: 10px 12px; border-bottom: 1px solid var(--line); }
+.goals-t { margin: 0 0 6px; font-family: var(--font-sc); font-size: 14px; letter-spacing: 0.06em; color: var(--ember); }
+.goal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.goal-list li { position: relative; padding-left: 22px; font-size: 14.5px; line-height: 1.35; color: var(--bone); }
+.goal-list li::before { content: ""; position: absolute; left: 5px; top: 0.45em; width: 7px; height: 7px; border: 1.5px solid var(--bone-dim); border-radius: 50%; }
+.goal-list li.ok { color: var(--bone-dim); }
+.goal-list li.ok::before { top: 0.32em; width: 9px; height: 5px; border: 0; border-left: 2px solid var(--moss); border-bottom: 2px solid var(--moss); border-radius: 0; transform: rotate(-45deg); }
+.meter { display: grid; gap: 6px; padding-block: 12px; border-bottom: 1px solid var(--line); }
+.meter-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.meter-t { font-family: var(--font-saga); font-size: 17.5px; font-weight: 500; }
+.meter-w { font-family: var(--font-sc); font-size: 14px; letter-spacing: 0.06em; font-weight: 500; }
+.meter.good .meter-w { color: var(--moss); }
+.meter.bad .meter-w { color: var(--rust); }
+.mbar { position: relative; height: 8px; border-radius: 4px; background: var(--line); }
+.mbar i { display: block; height: 100%; border-radius: 4px; background: var(--bone-dim); transition: width 0.3s linear; }
+.meter.good .mbar i { background: var(--moss); }
+.meter.bad .mbar i { background: var(--rust); }
+.mbar .mark { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--rust); }
+.chip.good { color: var(--moss); border-color: var(--moss); }
+.ev-body { display: grid; gap: 10px; margin-block: 4px 18px; }
+.ev-body p { margin: 0; font-family: var(--font-saga); font-size: 17px; line-height: 1.45; color: var(--bone); }
+.ev-body p.saga-note { font-style: italic; font-size: 16px; color: var(--bone-dim); border-left: 2px solid var(--ochre); padding-left: 12px; }
+.ev-choices { display: flex; flex-wrap: wrap; gap: 10px; }
+.sheet-card .eyebrow { margin: 0 0 6px; }
+.log .log-ch { font-family: var(--font-sc); font-size: 14px; letter-spacing: 0.08em; color: var(--ember); padding-top: 8px; border-top: 1px solid var(--line); }
+.chapter-num { margin: 0; font-family: var(--font-sc); font-size: 16px; letter-spacing: 0.16em; color: var(--ink); }
+.title-name { font-family: var(--font-saga); font-weight: 500; font-size: clamp(46px, 12vw, 104px); line-height: 0.95; text-wrap: balance; color: var(--ink); text-shadow: 0 1px 0 var(--ink-lift); }
+.poster .runes { overflow-wrap: anywhere; text-align: center; }
+@media (max-width: 400px) { .tabs button { padding-inline: 8px; font-size: 15px; } }
+
+/* ---------- wide screens: window left, ledger right ---------- */
+@media (min-width: 900px) {
+  #app {
+    max-width: 1240px; column-gap: 28px; padding-block: 18px 0;
+    grid-template-columns: minmax(0, 1.4fr) minmax(360px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "top side" "stage side" "saga side";
+  }
+  #top { grid-area: top; }
+  .stage { grid-area: stage; height: auto; min-height: 300px; }
+  .saga { grid-area: saga; height: 80px; margin-bottom: 18px; }
+  .saga-line { font-size: 18px; }
+  .side { grid-area: side; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .saga-line.in, .t-text.in, .floater, .t-hint { animation: none; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="season-row">
+      <span class="season-rune" id="seasonRune" title="ᛋ sól: the sun rune">ᛋ</span>
+      <span class="season-name" id="seasonName">Summer</span>
+      <span class="sep" aria-hidden="true">᛫</span>
+      <span class="season-year" id="seasonYear">Year 1</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="soundBtn" type="button" aria-pressed="true" aria-label="Sound"></button>
+      <button class="icon-btn" id="menuBtn" type="button" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+    <div class="res-row">
+      <div class="res" id="res-timber"><span class="lbl">Timber</span><b>0</b><i></i></div>
+      <div class="res" id="res-food"><span class="lbl">Food</span><b>0</b><i></i></div>
+      <div class="res" id="res-iron" hidden><span class="lbl">Iron</span><b>0</b><i></i></div>
+      <div class="res" id="res-grapes" hidden><span class="lbl">Grapes</span><b>0</b><i></i></div>
+      <div class="res" id="res-furs" hidden><span class="lbl">Furs</span><b>0</b><i></i></div>
+      <div class="res" id="res-dairy" hidden><span class="lbl">Dairy</span><b>0</b><i></i></div>
+      <div class="res" id="res-crew"><span class="lbl">Idle</span><b>35</b><i></i></div>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="scene" role="img" aria-label="The camp, with your men at work."></canvas>
+    <div class="chips" id="chips"></div>
+    <div class="hint-chip" id="hint"></div>
+    <div class="floaters" id="floaters" aria-hidden="true"></div>
+  </div>
+
+  <div class="saga" id="saga" role="button" tabindex="0" aria-label="Read the saga so far">
+    <p class="saga-line" id="sagaLine" aria-live="polite"></p>
+  </div>
+
+  <div class="side">
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Camp">
+      <button type="button" role="tab" data-tab="work" id="tab-work">Work<span class="dot"></span></button>
+      <button type="button" role="tab" data-tab="build" id="tab-build">Build<span class="dot"></span></button>
+      <button type="button" role="tab" data-tab="explore" id="tab-explore" hidden>Explore<span class="dot"></span></button>
+      <button type="button" role="tab" data-tab="ship" id="tab-ship" hidden>Ship<span class="dot"></span></button>
+      <button type="button" role="tab" data-tab="people" id="tab-people" hidden>People<span class="dot"></span></button>
+    </nav>
+    <section class="panel" id="panel" role="tabpanel"></section>
+  </div>
+</div>
+
+<div id="theater" hidden>
+  <canvas id="tcanvas" aria-hidden="true"></canvas>
+  <div class="t-top"><div class="t-year" id="tYear"></div></div>
+  <div class="t-bottom" id="tBottom">
+    <div class="t-text" id="tText" aria-live="polite"></div>
+    <div class="t-actions" id="tActions"></div>
+    <div class="t-hint" id="tHint"></div>
+  </div>
+  <div class="t-card" id="tCard" hidden></div>
+</div>
+
+<div id="sheet" hidden><div class="sheet-card" id="sheetCard" role="dialog" aria-modal="true" aria-label="Menu"></div></div>
+
+<script>
+(() => {
+'use strict';
+
+// ===== ENGINE START =====
+// Pure game rules for all four chapters. No DOM in here, so it can be simulated on its own.
+const SEASONS = [
+  { id: 'summer', name: 'Summer', len: 240, wood: 1, fish: 1, grape: 0.4, dairy: 1, winter: false, sail: true },
+  { id: 'autumn', name: 'Autumn', len: 180, wood: 1, fish: 1, grape: 1, dairy: 0.8, winter: false, sail: false },
+  { id: 'winter', name: 'Winter', len: 210, wood: 0.6, fish: 0.2, grape: 0, dairy: 0.35, winter: true, sail: false },
+  { id: 'spring', name: 'Spring', len: 180, wood: 1, fish: 1, grape: 0, dairy: 1, winter: false, sail: true },
+];
+const YEAR_LEN = SEASONS.reduce((a, x) => a + x.len, 0);
+const DAY_LEN = 72;
+const RATE = { wood: 0.42, fish: 0.55, grape: 0.2, iron: 0.05, charcoal: 0.5, eat: 0.042, burnBooths: 0.3, burnHall: 0.6, dairy: 0.12 };
+const SHELTER_BOOTHS = 8, SHELTER_HALL = 14, BROTHERS = 30;
+const HALL_COSTS = [70, 260, 600, 650, 800];
+const TOW = 200, DECK = 300, BIG_SHIP = 400, TRIP_FOOD = 10, RESCUE_BONUS = 500;
+const VALUE = { timber: 1, grapes: 5, nuts: 15, furs: 8 };
+const LAST_CHAPTER = 4;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+const CHAPTERS = [null,
+  { n: 1, leader: 'Leif', title: 'The saga of Leif', numeral: 'I', runes: 'ᛚᛅᛁᚠᛦ', crew: 35, scale: 1, startSeason: 0, hold: 800, hallCap: 3,
+    start: { timber: 40, food: 120, wood: 3 }, trips: 'leif', ship: ['planks', 'rivets', 'tar', 'mast'],
+    blurb: 'Leif Eriksson sails west, to a land no one has walked on.' },
+  { n: 2, leader: 'Thorvald', title: 'The saga of Thorvald', numeral: 'II', runes: 'ᚦᚢᚱᚢᛅᛚᛏᛦ', crew: 30, scale: 0.7, startSeason: 0, hold: 800, hallCap: 3,
+    start: { timber: 60, food: 150, wood: 3 }, trips: 'coast', ship: [],
+    blurb: 'Leif’s brother borrows the ship to see the coast for himself.' },
+  { n: 3, leader: 'Karlsefni and Gudrid', title: 'The saga of Karlsefni and Gudrid', numeral: 'III', runes: 'ᚴᛅᚱᛚᛋᛁᚠᚾᛁ ᛫ ᚴᚢᚦᚱᛁᚦᛦ', crew: 65, scale: 0.7, startSeason: 3, hold: 1000, hallCap: 5,
+    start: { timber: 60, food: 220, wood: 4, cattle: 8 }, trips: 'none', ship: [],
+    blurb: 'Sixty men, five women and a herd of cattle come to stay.' },
+  { n: 4, leader: 'Freydís', title: 'The saga of Freydís', numeral: 'IV', runes: 'ᚠᚱᛅᚢᛏᛁᛋ', crew: 35, scale: 0.7, startSeason: 0, hold: 900, hallCap: 5,
+    start: { timber: 60, food: 160, wood: 3 }, trips: 'none', ship: [],
+    blurb: 'Leif’s sister strikes a bargain with two brothers from Iceland.' },
+];
+const chap = s => CHAPTERS[s.ch] || CHAPTERS[1];
+
+const INTRO = {
+  1: ['There was a man named Leif, the son of Erik the Red. He was big and strong, and wise in most things.',
+    'He sailed west from Greenland with thirty-five men, to a land others had seen from the sea but no one had walked on.',
+    'They came ashore. There were trees everywhere. Greenland has no real trees.',
+    'Three of the men picked up axes and walked into the forest. Nobody had to tell them.'],
+  2: ['People in Greenland talked about Leif’s voyage a great deal. His brother Thorvald thought the land had not been explored enough.',
+    'Leif lent him the ship. Thorvald sailed west with thirty men, and they came to Leif’s houses.'],
+  3: ['Thorfinn Karlsefni, a merchant from Iceland, married Gudrid. They set out for Vinland with sixty men, five women and all kinds of livestock.',
+    'They meant to settle. Leif said they could use his houses, but he would not give them away.'],
+  4: ['Freydís, Leif’s sister, made a bargain with two brothers from Iceland, Helgi and Finnbogi. Two ships, thirty men each, and an equal share of everything.',
+    'Freydís brought five more men than they had agreed, and hid them.'],
+};
+
+const JOBS = [
+  { id: 'wood', name: 'Woodcutters', base: 8, growth: 1.21, unlocked: () => true },
+  { id: 'fish', name: 'Fishers', base: 12, growth: 1.22, unlocked: () => true },
+  { id: 'smith', name: 'Smiths', base: 45, growth: 1.4, unlocked: s => s.built.smithy },
+  { id: 'grape', name: 'Grape pickers', base: 15, growth: 1.2, unlocked: s => s.found.grapes },
+  { id: 'herd', name: 'Herders', base: 14, growth: 1.22, unlocked: s => s.cattle > 0 },
+];
+const BUILDINGS = [
+  { id: 'shed', name: 'Boat shed', cost: { timber: 160 }, show: s => s.halls >= 1,
+    desc: 'A shed on the shore for repairing the ship. Opens the Ship tab.',
+    line: 'They built a shed on the shore, for working on the ship.' },
+  { id: 'smithy', name: 'Smithy', cost: { timber: 120 }, show: s => s.found.iron,
+    desc: 'A furnace at the edge of the bog. Lets you put smiths to work.',
+    line: 'They built a smithy at the edge of the bog. Iron from mud. The smith said it was simple. It was not simple.' },
+  { id: 'byre', name: 'Byre', cost: { timber: 220 }, show: s => s.cattle > 0,
+    desc: 'A turf barn for the cattle. It keeps them alive, and milking, through the winter.',
+    line: 'They built a byre for the cattle. The cattle moved in without being asked.' },
+  { id: 'palisade', name: 'Palisade', cost: { timber: 420 }, show: s => s.ch === 3 || (s.people.met && s.people.trust <= -30),
+    desc: 'A strong fence of stakes around the houses. Raids do far less harm.',
+    line: s => s.ch === 3 ? 'Karlsefni had a strong palisade built around the houses.' : 'They drove a ring of sharp stakes into the ground around the houses.' },
+];
+const UPGRADES = [
+  { id: 'handles', name: 'Longer axe handles', cost: { timber: 25 }, show: s => s.ever.timber >= 15,
+    desc: 'Woodcutters chop 20% more.', line: 'Longer handles. Longer swings. Fewer complaints.' },
+  { id: 'weir', name: 'Salmon weir', cost: { timber: 100 }, show: s => s.found.salmon,
+    desc: 'Fishers catch 50% more.', line: 'They built a weir of stakes across the river. The salmon did not see it coming.' },
+  { id: 'racks', name: 'Drying racks', cost: { timber: 80 }, show: s => s.jobs.fish >= 2,
+    desc: 'Dried salmon keeps. The crew eats 30% less in winter.', line: 'Salmon hung drying on racks. The camp smelled of fish. It already did.' },
+  { id: 'walls', name: 'Thick turf walls', cost: { timber: 160 }, show: s => s.halls >= 1,
+    desc: 'Halls burn 40% less firewood in winter.', line: 'They stacked the turf thicker. The halls got darker and warmer.' },
+  { id: 'axes', name: 'Reforged axes', cost: { iron: 10 }, show: s => s.built.smithy,
+    desc: 'Woodcutters chop 50% more.', line: 'The smith reforged the axes. The trees had no answer.' },
+  { id: 'baskets', name: 'Birch-bark baskets', cost: { timber: 80 }, show: s => s.found.grapes,
+    desc: 'Grape pickers gather twice as much.', line: 'They made baskets of birch bark. Tyrkir took the biggest one.' },
+  { id: 'towboat', name: 'Ready the tow boat', cost: { timber: 250, iron: 6 }, show: s => (s.built.shed || s.ch > 1) && s.found.grapes,
+    desc: '200 more cargo space, for grapes only.', line: 'They readied the tow boat for grapes.' },
+  { id: 'deck', name: 'Lash cargo on deck', cost: { timber: 300 }, show: s => s.ch > 1 || !!s.ship.planks,
+    desc: '300 more cargo space.', line: 'They lashed timber on deck wherever it would fit. Nobody asked where the men would sleep.' },
+];
+const SHIP_TASKS = {
+  planks: { id: 'planks', name: 'Replace rotten planks', cost: { timber: 400 }, desc: 'The crossing was hard on her.',
+    line: 'Rotten planks came out. New ones went in.' },
+  rivets: { id: 'rivets', name: 'Forge new rivets', cost: { iron: 30 }, need: s => s.built.smithy ? '' : 'Needs iron. Find some, then build a smithy.',
+    desc: 'Iron rivets hold the planks together.', line: 'The smith made rivets. Hundreds of them. He did not want to talk about it.' },
+  tar: { id: 'tar', name: 'Caulk the seams with tar', cost: { timber: 300 }, desc: 'Burn resinous wood for tar and pack every seam.',
+    line: 'Pine tar went into the seams. Everything smelled of it for weeks.' },
+  mast: { id: 'mast', name: 'Raise a new mast', cost: { timber: 200 }, need: s => s.found.mast ? '' : 'Needs a tall, straight tree. Keep exploring.',
+    desc: 'The old mast cracked on the way over.', line: 'The tallest tree became a mast. Nobody asked the tree.' },
+  keel: { id: 'keel', name: 'Fit a new keel', cost: { timber: 320 }, desc: 'The keel broke on the cape.',
+    line: 'They fitted a new keel, and set the old one up on the cape. They called the place Kjalarnes, Keel Point.' },
+};
+const TRIPS = {
+  leif: [
+    { time: 30, find: s => { s.found.salmon = true; },
+      line: 'The explorers followed the river upstream to a narrow place. A weir there would catch a great many salmon.' },
+    { time: 40, find: s => { s.found.iron = true; },
+      line: 'One man came back with red-brown mud on his boots. The smith looked at it for a long time. “Iron,” he said.' },
+    { time: 40, find: s => { s.tyrkirMissing = true; },
+      line: 'One evening the explorers came back without Tyrkir the German, Leif’s foster-father. Leif was upset.' },
+    { time: 45, find: s => { s.found.mast = true; },
+      line: 'Inland they found a stand of tall, straight trees. One of them would make a fine mast.' },
+    { time: 55, find: s => { s.found.nuts = true; s.nuts += 12; },
+      line: 'Far to the south they found nuts from a tree that does not grow near the camp. They brought back a sackful.' },
+  ],
+  coast: [
+    { time: 45, name: 'West along the coast', desc: 'Take the ship’s boat west, past the islands.', find: s => { s.flags.coast = 1; },
+      line: 'The men took the ship’s boat west along the coast. They found woods, white sand and many islands.',
+      line2: 'On one island they found a small wooden shelter for storing grain. It was the only sign of people anywhere.' },
+    { time: 55, name: 'North and east in the ship', desc: 'Thorvald wants to see the coast to the north.', find: s => { s.flags.coast = 2; s.flags.keelBroken = true; },
+      line: 'Thorvald sailed north and east. A storm drove the ship onto a cape, and the keel broke.' },
+    { time: 40, name: 'The wooded headland', desc: 'A headland Thorvald saw on the way.', need: s => s.ship.keel ? '' : 'Fit a new keel first, in the Ship tab.',
+      find: s => { s.flags.coast = 3; s.pending = 'meet'; },
+      line: 'They came to a beautiful wooded headland. Thorvald said, “Here I would like to make my home.”' },
+  ],
+  none: [],
+};
+const DISCOVERIES = [
+  { id: 'salmon', name: 'Salmon narrows', desc: 'Build a salmon weir. Fishers catch 50% more.' },
+  { id: 'iron', name: 'Bog iron', desc: 'Build a smithy, then put smiths to work.' },
+  { id: 'grapes', name: 'Grapes', desc: 'Hire grape pickers. Worth 5 renown each in the hold. Best in autumn.' },
+  { id: 'mast', name: 'Tall timber', desc: 'Woodcutters chop 20% more, and there is a mast for the ship.' },
+  { id: 'nuts', name: 'Butternuts', desc: 'A sack of 12 in the hold, worth 15 renown each.' },
+];
+const COAST_FINDS = [
+  { step: 1, name: 'Islands to the west', desc: () => 'Woods, white sand, and a wooden grain shelter: the first sign of people.' },
+  { step: 2, name: 'Kjalarnes', desc: () => 'Keel Point, where the keel broke on the rocks.' },
+  { step: 3, name: 'The wooded headland', desc: s => s.flags.thorvaldDead ? 'Krossanes, Cross Point. Thorvald is buried here.' : 'People live nearby. Nobody died here.' },
+];
+const GOALS = {
+  1: [{ text: 'Build a turf hall', done: s => s.halls >= 1 }, { text: 'Find out what the land has to offer', done: s => s.trips >= TRIPS.leif.length },
+    { text: 'Repair the ship', done: s => shipReady(s) }, { text: 'Sail home in spring or summer', done: () => false }],
+  2: [{ text: 'Explore west along the coast', done: s => (s.flags.coast || 0) >= 1 }, { text: 'Explore north and east', done: s => (s.flags.coast || 0) >= 2 && !!s.ship.keel },
+    { text: 'Visit the wooded headland', done: s => (s.flags.coast || 0) >= 3 }, { text: 'Sail home in spring or summer', done: () => false }],
+  3: [{ text: 'Build a byre for the herd', done: s => s.built.byre }, { text: 'Build a palisade', done: s => s.built.palisade },
+    { text: 'Trade with the people of the land', done: s => s.stats.trades > 0 || !!s.flags.armed }, { text: 'Sail home when the time comes', done: () => false }],
+  4: [{ text: 'Keep the peace between the two camps', done: s => s.feud < 55 }, { text: 'Fill the hold', done: s => { const cg = cargo(s); return cg.used >= cg.room * 0.8; } },
+    { text: 'Sail home in spring or summer', done: () => false }],
+};
+const QUARRELS = ['The two camps quarrelled over firewood.', 'The two camps quarrelled over the best fishing spot.',
+  'Someone in the brothers’ camp said something about Freydís. Someone else made sure she heard it.',
+  'The games between the two camps stopped. People stopped visiting each other.', 'A fight broke out over a missing axe. The axe turned up later. The fight did not end.'];
+const FEASTS = ['Both camps ate together, and for one evening nobody quarrelled.', 'There was a feast. Helgi made a speech. It was not a good speech, but people clapped.',
+  'Freydís sent meat and ale over to the brothers. Finnbogi sent back thanks, which surprised everyone.'];
+
+// Choices the saga puts in your hands. Each resolve() returns the lines that tell what happened.
+const EVENTS = {
+  meet: {
+    title: 'Three skin boats',
+    text: ['On the beach below the headland they saw three skin boats.', 'Under each boat, three men lay asleep.'],
+    choices: [{ id: 'attack', label: 'Attack them' }, { id: 'peace', label: 'Leave them in peace' }],
+    resolve(s, id) {
+      s.people.met = true;
+      if (id === 'attack') {
+        s.people.trust = -80; s.flags.thorvaldDead = true; s.raidT = 45;
+        return ['They attacked. Eight of the nine were killed. One got away in his boat.',
+          'That night a great many skin boats came against them. Thorvald was hit by an arrow, under the arm.',
+          '“It seems I spoke the truth,” he said. “I will live on that headland after all.” He asked to be buried there, with a cross at his head and another at his feet.',
+          'They called the place Krossanes, Cross Point. The men went back to Leif’s houses without him.'];
+      }
+      s.people.trust = 15;
+      s.bonuses.push({ label: 'Nobody died on the beach', value: 400 });
+      return ['They backed away quietly and rowed home. Nobody woke up.',
+        'Some days later, people came to the edge of the forest and watched the camp for a long time. Then they went away.',
+        'That is not how the saga tells it. In the saga, Thorvald’s men attacked. Eight of the nine were killed, and that night their people came back in force. Thorvald died of an arrow wound and was buried on the headland.'];
+    },
+  },
+  visit1: {
+    title: 'People from the forest',
+    text: ['People came out of the forest, carrying bundles of furs.', 'Then Karlsefni’s bull bellowed, very loudly, and they ran in every direction.',
+      'After a while they came back, slowly. They wanted to trade. Most of all, they wanted swords and spears.'],
+    choices: [{ id: 'refuse', label: 'Refuse to trade weapons' }, { id: 'weapons', label: 'Trade them weapons' }],
+    resolve(s, id) {
+      s.people.met = true; s.flags.tradeOpen = true; s.visit = { left: 45, total: 45 }; s.visitT = 60;
+      if (id === 'refuse') {
+        s.people.trust += 5;
+        return ['Karlsefni forbade anyone to sell them weapons.', 'So the women brought out milk and cheese instead. After that, the visitors wanted nothing else.'];
+      }
+      s.flags.armed = true; s.furs += 30; s.people.trust += 12;
+      return ['They traded away swords and spears for a great heap of furs.', 'In the saga, Karlsefni forbade anyone to sell them weapons. He had his reasons.'];
+    },
+  },
+  thief: {
+    title: 'The axe on the wall',
+    text: ['The visitors came back, more of them than before.', 'One of them reached up and took an axe from the wall.'],
+    choices: [{ id: 'let', label: 'Let him keep it' }, { id: 'stop', label: 'Stop him' }],
+    resolve(s, id) {
+      s.flags.thiefDone = true;
+      if (id === 'stop') {
+        s.furs += 20; s.people.trust = Math.min(s.people.trust, 0) - 70; s.flags.tradeOpen = false; s.visit = null; s.raidT = 35; s.flags.battle = true;
+        return ['One of Karlsefni’s men killed him. The others ran, and left their furs behind.',
+          'A few days later they came back to fight. Karlsefni put the bull at the front of his men.',
+          'Many of them were killed. One picked up an iron axe and tried it. Their leader took it from him and threw it far out into the sea.',
+          'Karlsefni could see that, good as the land was, they would never live there in peace.'];
+      }
+      s.people.trust += 15;
+      return ['He walked off with the axe. Nobody died over it.',
+        'That is not how the saga tells it. In the saga, one of Karlsefni’s men killed him, and a battle followed. Soon after, Karlsefni decided to leave.'];
+    },
+  },
+  houses: {
+    title: 'Leif’s houses',
+    text: ['The brothers got there first, and carried their things into Leif’s houses.', 'Freydís said that Leif had lent the houses to her, not to them.'],
+    choices: [{ id: 'share', label: 'Share the houses' }, { id: 'evict', label: 'Make them leave' }],
+    resolve(s, id) {
+      if (id === 'share') {
+        s.flags.shared = true; s.feud = clamp(s.feud - 12, 0, 100);
+        return ['Freydís let them stay. Thirty more men under Leif’s roofs made for a crowded winter.', 'In the saga, she made them leave, and they built a house of their own.'];
+      }
+      s.flags.brothersHouse = true; s.feud = clamp(s.feud + 20, 0, 100);
+      return ['The brothers carried their things out again, and built a house of their own further along the shore.', '“We brothers are no match for you in wickedness,” said Helgi.'];
+    },
+  },
+  ships: {
+    title: 'The bigger ship',
+    text: ['Late in the winter, Freydís got up early and walked barefoot through the dew to the brothers’ house.', 'Their ship was bigger than hers. She wanted it.'],
+    choices: [{ id: 'ask', label: 'Ask them to trade ships' }, { id: 'leave', label: 'Let it be' }],
+    resolve(s, id) {
+      s.flags.shipsDone = true;
+      s.feud = clamp(s.feud + (id === 'ask' ? 22 : -8), 0, 100);
+      const lines = [id === 'ask' ? 'Finnbogi said he would trade, if it would please her.' : 'She walked back through the dew and said nothing about it.'];
+      if (s.feud >= 70) {
+        s.flags.massacre = true; s.flags.bigShip = true; s.timber += 300; s.grapes += 120;
+        s.bonuses.push({ label: 'What Freydís did', value: -1500 });
+        lines.push('At home she told her husband the brothers had beaten her. It was a lie. She said she would leave him unless he took revenge.',
+          'That night her men killed the brothers and all of their men. Nobody would kill the five women, so Freydís took an axe and killed them herself.',
+          'She told her people that anyone who spoke of it would die.');
+      } else {
+        s.flags.peace = true;
+        s.bonuses.push({ label: 'A bargain kept', value: 500 });
+        lines.push('The two camps got through to spring without blood.',
+          'That is not how the saga tells it. In the saga, Freydís lied to her husband that the brothers had beaten her. Her men killed the brothers and all of their men, and she killed the five women herself, with an axe.');
+      }
+      return lines;
+    },
+  },
+};
+
+const OUT = [];   // narration waiting for the UI
+
+function calendar(t, scale) {
+  scale = scale || 1;
+  const yl = YEAR_LEN * scale, year = Math.floor(t / yl) + 1;
+  let r = t - (year - 1) * yl, i = 0;
+  while (i < 3 && r >= SEASONS[i].len * scale) { r -= SEASONS[i].len * scale; i++; }
+  const season = SEASONS[i], len = season.len * scale;
+  return { year, i, season, elapsed: r, left: len - r, len, next: SEASONS[(i + 1) % 4], n: (year - 1) * 4 + i };
+}
+const calOf = s => calendar(s.t, chap(s).scale);
+function timeToSpring(s) {
+  const c = calOf(s), sc = chap(s).scale;
+  if (c.season.sail) return 0;
+  let t = c.left;
+  for (let i = c.i + 1; i < 3; i++) t += SEASONS[i].len * sc;
+  return t;
+}
+function daylight(t, sid) {
+  const p = ((t + DAY_LEN * 0.32) % DAY_LEN) / DAY_LEN;
+  const L = 0.5 - 0.5 * Math.cos(2 * Math.PI * p);
+  const k = sid === 'summer' ? 0.55 : sid === 'winter' ? 1.7 : sid === 'autumn' ? 1.1 : 0.85;
+  return Math.pow(L, k);
+}
+function chapterState(n, prev) {
+  const C = CHAPTERS[n];
+  const s = {
+    v: 2, ch: n, t: 0, t0: 0, phase: 'camp', started: false,
+    timber: C.start.timber, food: C.start.food, iron: 0, grapes: 0, nuts: 0, furs: 0, dairy: 0, cattle: C.start.cattle || 0,
+    ever: { timber: 0, food: 0, iron: 0, grapes: 0, taps: 0 },
+    jobs: { wood: C.start.wood, fish: 0, smith: 0, grape: 0, herd: 0 },
+    crew: C.crew, wounded: 0, woundT: 0,
+    halls: 0, built: { shed: false, smithy: false, byre: false, palisade: false },
+    up: {}, ship: {}, found: { salmon: false, iron: false, grapes: false, mast: false, nuts: false },
+    trip: null, trips: 0, tyrkirMissing: false, grapesAt: 0,
+    hungry: false, cold: false, wasHungry: false, wasCold: false,
+    said: {}, seen: {}, log: [], seasonKey: 0,
+    stats: { hungry: 0, cold: 0, trades: 0, raids: 0, quarrels: 0 },
+    people: { met: false, trust: 0 }, feud: n === 4 ? 25 : 0,
+    raidT: 80, visit: null, visitT: 0, quarrelT: 45, cattleT: 40, cool: { feast: 0, help: 0 },
+    flags: {}, pending: null, bonuses: [],
+    voyage: null, history: [], renownTotal: 0,
+  };
+  if (prev) {
+    // Leif's houses stay standing, and what was learned stays learned.
+    s.halls = prev.halls;
+    for (const k of ['shed', 'smithy', 'byre', 'palisade']) s.built[k] = !!prev.built[k];
+    for (const k of ['weir', 'racks', 'walls']) if (prev.up[k]) s.up[k] = true;
+    s.found = Object.assign({}, prev.found);
+    s.people = { met: !!prev.people.met, trust: Math.round((prev.people.trust || 0) * 0.5) };
+    s.history = prev.history.slice(); s.renownTotal = prev.renownTotal;
+    s.log = prev.log.slice(-160); s.seen = Object.assign({}, prev.seen);
+    s.ever.timber = prev.ever.timber;
+    // Renown buys a better-supplied crew.
+    s.timber += Math.round(prev.renownTotal * 0.04);
+    s.food += Math.round(prev.renownTotal * 0.02);
+  }
+  const off = SEASONS.slice(0, C.startSeason).reduce((a, x) => a + x.len * C.scale, 0);
+  s.t = off; s.t0 = off; s.seasonKey = calendar(off, C.scale).n;
+  return s;
+}
+const newState = () => chapterState(1, null);
+
+const shelterOf = s => SHELTER_BOOTHS + s.halls * SHELTER_HALL - (s.flags.shared ? BROTHERS : 0);
+const employedOf = s => JOBS.reduce((a, j) => a + (s.jobs[j.id] || 0), 0);
+const idleOf = s => s.crew - employedOf(s);
+const jobDef = id => JOBS.find(j => j.id === id);
+const jobCost = (s, j) => Math.ceil(j.base * Math.pow(j.growth, s.jobs[j.id] || 0));
+const hallCap = s => chap(s).hallCap;
+const shipTasks = s => { const ids = chap(s).ship.slice(); if (s.flags.keelBroken) ids.push('keel'); return ids.map(id => SHIP_TASKS[id]); };
+const shipReady = s => shipTasks(s).every(x => s.ship[x.id]);
+const exploreOpen = s => s.halls >= 1;
+const tripList = s => TRIPS[chap(s).trips] || [];
+const tripTime = s => { const L = tripList(s); return (s.trips < L.length ? L[s.trips].time : 40) * (calOf(s).season.winter ? 1.5 : 1); };
+const woodMult = s => (s.up.handles ? 1.2 : 1) * (s.up.axes ? 1.5 : 1) * (s.found.mast ? 1.2 : 1);
+const fishMult = s => (s.up.weir ? 1.5 : 1) * (s.people.trust >= 50 ? 1.2 : 1);
+const grapeMult = s => (s.up.baskets ? 2 : 1);
+const furPrice = s => Math.round(2 + 2 * Math.max(0, s.people.trust) / 100);
+const holdOf = s => chap(s).hold + (s.up.deck ? DECK : 0) + (s.flags.bigShip ? BIG_SHIP : 0);
+const trustWord = t => t <= -30 ? 'Hostile' : t < 20 ? 'Wary' : t < 50 ? 'Friendly' : 'Close friends';
+const feudWord = f => f < 30 ? 'Calm' : f < 55 ? 'Uneasy' : f < 70 ? 'Bitter' : 'Murderous';
+function canPay(s, c) { for (const k in c) if (s[k] + 1e-9 < c[k]) return false; return true; }
+function pay(s, c) { for (const k in c) s[k] = Math.max(0, s[k] - c[k]); }
+
+function say(s, text, tone) {
+  const c = calOf(s);
+  const e = { text, tone: tone || '', when: c.season.name + ' ᛫ year ' + c.year, ch: s.ch };
+  s.log.push(e);
+  if (s.log.length > 260) s.log.shift();
+  if (tone !== 'quiet') OUT.push(e);
+}
+function sayOnce(s, key, cond, ...lines) {
+  const k = s.ch + ':' + key;
+  if (s.said[k] || !cond) return false;
+  s.said[k] = 1;
+  for (const l of lines) say(s, l);
+  return true;
+}
+
+function rates(s) {
+  const c = calOf(s), se = c.season;
+  const shel = se.winter ? clamp(shelterOf(s) / s.crew, 0, 1) : 1;
+  const healthy = s.wounded > 0 ? Math.max(0, 1 - s.wounded / s.crew) : 1;
+  const base = shel * healthy * (s.halls >= 3 ? 1.1 : 1);
+  const hungry = s.hungry ? 0.5 : 1, cold = s.cold ? 0.5 : 1;
+  const timberIn = s.jobs.wood * RATE.wood * se.wood * woodMult(s) * base * hungry;
+  const foodIn = s.jobs.fish * RATE.fish * se.fish * fishMult(s) * base * cold;
+  const grapeIn = s.jobs.grape * RATE.grape * se.grape * grapeMult(s) * base * hungry * cold;
+  const smithW = s.jobs.smith * base * hungry * cold;
+  const ironIn = smithW * RATE.iron, charcoal = smithW * RATE.charcoal;
+  const tended = Math.min(s.cattle, (s.jobs.herd || 0) * 4);
+  const dairyIn = tended * RATE.dairy * (se.winter ? (s.built.byre ? 0.35 : 0) : se.dairy) * base * hungry;
+  const eat = s.crew * RATE.eat * (se.winter ? 1.3 * (s.up.racks ? 0.7 : 1) : 1);
+  const burn = se.winter ? (RATE.burnBooths + s.halls * RATE.burnHall) * (s.up.walls ? 0.6 : 1) : 0;
+  return { cal: c, shel, timberIn, foodIn, grapeIn, ironIn, charcoal, dairyIn, tended, eat, burn,
+    timberNet: timberIn - charcoal - burn, foodNet: foodIn - eat };
+}
+
+function step(s, dt) {
+  if (s.phase !== 'camp' || s.pending) return;
+  s.t += dt;
+  const r = rates(s), c = r.cal;
+  const tin = r.timberIn * dt;
+  s.timber += tin; s.ever.timber += tin;
+  // Fires come first, then charcoal for the smiths.
+  const burn = r.burn * dt;
+  if (burn > 0) {
+    if (s.timber >= burn) { s.timber -= burn; if (s.cold && s.timber > 3) s.cold = false; }
+    else { s.timber = 0; s.cold = true; }
+  } else s.cold = false;
+  const coal = r.charcoal * dt;
+  let f = 1;
+  if (coal > 0) { if (s.timber >= coal) s.timber -= coal; else { f = s.timber / coal; s.timber = 0; } }
+  const iron = r.ironIn * f * dt;
+  s.iron += iron; s.ever.iron += iron;
+  const fin = r.foodIn * dt;
+  s.food += fin - r.eat * dt; s.ever.food += fin;
+  if (s.food <= 0) { s.food = 0; s.hungry = true; } else if (s.hungry && s.food > 3) s.hungry = false;
+  const g = r.grapeIn * dt;
+  s.grapes += g; s.ever.grapes += g;
+  s.dairy += r.dairyIn * dt;
+  if (s.trip) { s.trip.left -= dt; if (s.trip.left <= 0) finishTrip(s); }
+  if (s.wounded > 0) { s.woundT -= dt; if (s.woundT <= 0) { s.wounded = 0; say(s, 'The wounded men were back on their feet.'); } }
+  if (s.cattle > 0 && c.season.winter && !s.built.byre) {
+    s.cattleT -= dt;
+    if (s.cattleT <= 0) { s.cattleT = 40; s.cattle--; s.flags.cowLost = true; say(s, 'A cow died of the cold. A byre would have saved her.'); }
+  }
+  s.cool.feast = Math.max(0, s.cool.feast - dt); s.cool.help = Math.max(0, s.cool.help - dt);
+  // The people of the land: raids when they are hostile, trade visits when they are not.
+  if (s.people.met && s.people.trust <= -30) { s.raidT -= dt; if (s.raidT <= 0) raid(s); }
+  if (s.flags.tradeOpen && s.people.trust > -30) {
+    if (s.visit) { s.visit.left -= dt; if (s.visit.left <= 0) { s.visit = null; s.visitT = 60; } }
+    else { s.visitT -= dt; if (s.visitT <= 0) { s.visit = { left: 45, total: 45 }; say(s, 'People of the land came out of the forest with furs to trade.'); } }
+  }
+  // Two camps on one shore.
+  if (s.ch === 4 && !s.flags.shipsDone) {
+    s.feud = Math.min(100, s.feud + (c.season.winter ? 0.07 : 0.03) * dt);
+    s.quarrelT -= dt;
+    if (s.quarrelT <= 0) {
+      s.quarrelT = 50 + Math.random() * 30;
+      if (s.feud > 15) { s.feud = Math.min(100, s.feud + 6); say(s, QUARRELS[s.stats.quarrels++ % QUARRELS.length]); }
+    }
+  }
+  if (s.hungry) s.stats.hungry += dt;
+  if (s.cold) s.stats.cold += dt;
+  if (c.n !== s.seasonKey) { s.seasonKey = c.n; seasonStory(s, c); }
+  story(s, c);
+}
+function tick(s, dt) { while (dt > 1e-6 && !s.pending) { const d = Math.min(dt, 0.2); step(s, d); dt -= d; } }
+
+function raid(s) {
+  s.stats.raids++;
+  const pal = s.built.palisade, k = pal ? 0.25 : 1, hurt = pal ? 0 : (s.flags.armed ? 4 : 2);
+  const food = Math.round(Math.min(60, s.food * 0.15) * k), wood = Math.round(Math.min(80, s.timber * 0.1) * k);
+  s.food -= food; s.timber -= wood;
+  if (hurt) { s.wounded = Math.min(s.crew - 1, s.wounded + hurt); s.woundT = 60; }
+  say(s, pal ? `People of the land attacked the camp in the night, but the palisade held. They got away with ${food} food and ${wood} timber.`
+    : `People of the land attacked the camp in the night. They got away with ${food} food and ${wood} timber, and ${hurt} men were wounded.`, 'event');
+  s.raidT = 100 + Math.random() * 60;
+}
+
+function act(s, type, id) {
+  if (s.phase !== 'camp' || s.pending) return false;
+  if (type === 'hire') {
+    const j = jobDef(id);
+    if (!j || !j.unlocked(s) || idleOf(s) < 1) return false;
+    const c = jobCost(s, j);
+    if (s.timber < c) return false;
+    s.timber -= c; s.jobs[id]++;
+    jobStory(s, id);
+    return true;
+  }
+  if (type === 'hall') {
+    if (s.halls >= hallCap(s) || s.timber < HALL_COSTS[s.halls]) return false;
+    s.timber -= HALL_COSTS[s.halls]; s.halls++;
+    hallStory(s);
+    return true;
+  }
+  if (type === 'build') {
+    const b = BUILDINGS.find(x => x.id === id);
+    if (!b || s.built[id] || !b.show(s) || !canPay(s, b.cost)) return false;
+    pay(s, b.cost); s.built[id] = true; say(s, typeof b.line === 'function' ? b.line(s) : b.line, 'event');
+    return true;
+  }
+  if (type === 'upgrade') {
+    const u = UPGRADES.find(x => x.id === id);
+    if (!u || s.up[id] || !u.show(s) || !canPay(s, u.cost)) return false;
+    pay(s, u.cost); s.up[id] = true; say(s, u.line);
+    return true;
+  }
+  if (type === 'ship') {
+    const x = shipTasks(s).find(y => y.id === id);
+    if (!x || s.ship[id] || !s.built.shed || (x.need && x.need(s)) || !canPay(s, x.cost)) return false;
+    pay(s, x.cost); s.ship[id] = true; say(s, x.line, id === 'keel' ? 'event' : '');
+    if (s.ch === 1 && shipReady(s)) {
+      say(s, calOf(s).season.sail ? 'The ship was ready. Leif could sail home whenever he liked.'
+        : 'The ship was ready. The sea was not. They would have to wait for spring.', 'event');
+    }
+    return true;
+  }
+  if (type === 'explore') return startTrip(s);
+  if (type === 'trade') {
+    if (!s.visit || s.dairy < 20) return false;
+    s.dairy -= 20; s.furs += furPrice(s);
+    s.people.trust = Math.min(60, s.people.trust + 1.5); s.stats.trades++;
+    sayOnce(s, 'stomachs', true, 'The visitors carried their purchases away in their stomachs. Karlsefni’s people kept the furs.');
+    return true;
+  }
+  if (type === 'feast') {
+    if (s.ch !== 4 || s.flags.shipsDone || s.cool.feast > 0 || s.food < 90) return false;
+    s.food -= 90; s.feud = Math.max(0, s.feud - 18); s.cool.feast = 30;
+    say(s, FEASTS[s.stats.feasts = ((s.stats.feasts || 0) + 1) % FEASTS.length]);
+    return true;
+  }
+  if (type === 'help') {
+    if (s.ch !== 4 || s.flags.shipsDone || s.cool.help > 0 || s.timber < 120) return false;
+    s.timber -= 120; s.feud = Math.max(0, s.feud - 8); s.cool.help = 25;
+    say(s, 'Freydís sent firewood over to the brothers’ camp. It was a cold winter, and they took it.');
+    return true;
+  }
+  return false;
+}
+
+function startTrip(s) {
+  if (s.trip || !exploreOpen(s)) return false;
+  if (s.tyrkirMissing) {
+    s.trip = { kind: 'search', left: 20, total: 20 };
+    say(s, 'Leif took twelve men and went looking for him.');
+    return true;
+  }
+  const T = tripList(s)[s.trips];
+  if (T && T.need && T.need(s)) return false;
+  if (s.food < TRIP_FOOD) return false;
+  s.food -= TRIP_FOOD;
+  const tt = tripTime(s);
+  s.trip = { kind: 'trip', idx: s.trips, left: tt, total: tt };
+  return true;
+}
+function finishTrip(s) {
+  const tr = s.trip; s.trip = null;
+  if (tr.kind === 'search') {
+    s.tyrkirMissing = false; s.found.grapes = true; s.grapesAt = s.t;
+    say(s, 'They found Tyrkir in a very good mood. He talked in German for a long time and rolled his eyes.', 'event');
+    say(s, 'Then he said, in Norse, that he had found grapes.');
+    say(s, 'Leif named the land after what they had found there: Vinland, Wine Land.', 'event');
+    return;
+  }
+  const L = tripList(s), i = tr.idx;
+  s.trips++;
+  if (i < L.length) { const T = L[i]; T.find(s); say(s, T.line, 'event'); if (T.line2) say(s, T.line2); return; }
+  const se = calOf(s).season;
+  const opts = [
+    { w: 3, f: () => { s.timber += 40; s.ever.timber += 40; say(s, 'The explorers found a beach covered in driftwood, and carried back what they could. +40 timber'); } },
+    { w: 3, f: () => { s.food += 30; say(s, 'The explorers found a hillside full of berries. +30 food'); } },
+    { w: s.found.grapes && (se.id === 'autumn' || se.id === 'summer') ? 4 : 0, f: () => { s.grapes += 25; say(s, 'The explorers found more vines, heavy with grapes. +25 grapes'); } },
+    { w: 2, f: () => say(s, 'The explorers found nothing new, and were back by evening.') },
+  ];
+  let r = Math.random() * opts.reduce((a, o) => a + o.w, 0);
+  for (const o of opts) { if ((r -= o.w) < 0) { o.f(); break; } }
+}
+function resolveEvent(s, choice) {
+  const ev = EVENTS[s.pending];
+  if (!ev) { s.pending = null; return []; }
+  s.pending = null;
+  s.flags['ev:' + ev.title] = choice;
+  const out = ev.resolve(s, choice) || [];
+  for (const l of out) say(s, l, 'quiet');
+  return out;
+}
+
+function jobStory(s, id) {
+  if (s.ch === 1) {
+    if (id === 'wood') {
+      sayOnce(s, 'wood1', true, 'Leif handed out another axe. Another man walked into the forest. Leif was pleased.');
+      sayOnce(s, 'wood5', s.jobs.wood >= 5, 'The sound of axes carried across the bay.');
+    }
+    if (id === 'fish') sayOnce(s, 'fish1', true, 'There were salmon in the river, bigger than any they had ever seen.');
+    if (id === 'smith') sayOnce(s, 'smith1', true, 'The furnace roared all night. In the morning there was a lump of iron the size of a fist.');
+    if (id === 'grape') sayOnce(s, 'grape1', true, 'Tyrkir showed the men where the vines were. He seemed to know the way very well.');
+  }
+  if (id === 'herd') sayOnce(s, 'herd1', true, 'The herders took the cattle up to the meadow. The bull came along when he felt like it.');
+}
+function hallStory(s) {
+  if (s.ch === 1) {
+    if (s.halls === 1) {
+      say(s, 'They decided to stay the winter, and built a large house of turf and timber.', 'event');
+      say(s, 'Then Leif split his men into two groups. One group stayed by the houses.');
+      say(s, 'The other went exploring, but never so far that they could not be back by evening.');
+    }
+    if (s.halls === 2) say(s, 'A second hall. Now everyone fit, if nobody moved.');
+    if (s.halls === 3) say(s, 'A third hall. Leif called it his great hall. It was a little bigger than the others.');
+    return;
+  }
+  say(s, s.halls >= 4 ? 'Another hall went up. The camp was beginning to look like a village.' : 'A new turf hall went up beside Leif’s houses.');
+}
+function seasonStory(s, c) {
+  const y = c.year, id = c.season.id;
+  if (s.ch === 1) {
+    if (id === 'autumn') say(s, y === 1 ? 'The days grew shorter. The men began to talk about winter.'
+      : 'Autumn again. The sailing season was over. They would have to winter here again.');
+    if (id === 'winter') say(s, y === 1 ? 'Winter came. The saga says no frost came that winter. The saga was written two hundred years later, in Iceland.'
+      : 'Another winter. The saga does not mention this one.');
+    if (id === 'spring') say(s, 'The ice went out of the bay. It was sailing season.' + (shipReady(s) ? ' The ship was ready.' : ''), 'event');
+    if (id === 'summer') say(s, 'Summer again. Leif thought about Greenland more often now.');
+    return;
+  }
+  if (id === 'autumn') say(s, 'The days grew shorter.');
+  if (id === 'winter') say(s, s.ch === 2 ? 'Winter came. They spent it in Leif’s houses, and fished.' : 'Winter came.');
+  if (id === 'spring') {
+    say(s, 'The ice went out of the bay. It was sailing season.', 'event');
+    if (s.cattle > 0) {
+      const calves = Math.floor(s.cattle / 3);
+      if (calves) { s.cattle += calves; say(s, calves === 1 ? 'A calf was born.' : `${calves} calves were born.`); }
+    }
+  }
+  if (id === 'summer') say(s, 'Summer came.');
+}
+function story(s, c) {
+  const el = s.t - s.t0, sc = chap(s).scale;
+  if (s.hungry && !s.wasHungry) sayOnce(s, 'hungry', true, 'The men were hungry. Hungry men chop slowly.');
+  if (!s.hungry && s.wasHungry) sayOnce(s, 'fed', true, 'The men ate. Things improved.');
+  s.wasHungry = s.hungry;
+  if (s.cold && !s.wasCold) sayOnce(s, 'cold', true, 'The firewood ran out. The woodcutters kept warm. Nobody else did.');
+  s.wasCold = s.cold;
+  if (c.season.id === 'autumn' && c.left < 60 * sc) {
+    const sh = Math.max(0, shelterOf(s));
+    if (sh < s.crew) sayOnce(s, 'roofs' + c.year, true, `Winter would come soon. Only ${sh} of the ${s.crew} people had a roof over them.`);
+    if (s.food < 150) sayOnce(s, 'stores' + c.year, true, 'There was not much food put away for the winter.');
+    if (s.cattle > 0 && !s.built.byre) sayOnce(s, 'byre' + c.year, true, 'The cattle would need a byre before the winter.');
+  }
+  if (c.season.winter && c.elapsed > 8 && shelterOf(s) < s.crew) sayOnce(s, 'shiver' + c.year, true, 'The people without a roof spent the winter shivering. Shivering is not work.');
+  sayOnce(s, 'everyone', idleOf(s) === 0, 'Everyone had a job. Nobody was happy about it.');
+  if (s.ch === 1) {
+    sayOnce(s, 'hands', el > 25 && employedOf(s) <= 3, 'Leif had thirty-five men, and three of them were working. He thought about this.');
+    sayOnce(s, 'lowfood', s.food < 60 && s.jobs.fish === 0, 'The food from the ship was running low. Someone mentioned that the river was full of fish.');
+    if (c.season.winter && daylight(s.t, 'winter') < 0.1) sayOnce(s, 'aurora', true, 'Lights moved across the sky. Nobody knew what they were. That did not stop anyone having an opinion.');
+    sayOnce(s, 'berries', s.found.grapes && s.t - s.grapesAt > 45, 'Some people say they were really berries. Tyrkir said grapes.');
+    sayOnce(s, 'stumps', s.ever.timber >= 1400, 'There were fewer trees near the camp now. The men had to walk a little further.');
+  } else if (s.ch === 2) {
+    sayOnce(s, 'vines', c.season.id === 'autumn' && c.elapsed > 20, 'They gathered grapes, and cut vines to take home.');
+  } else if (s.ch === 3) {
+    if (sayOnce(s, 'whale', el > 40, 'A big whale was stranded on the shore. They cut it up, and nobody went hungry for a while. +250 food')) s.food += 250;
+    sayOnce(s, 'bull', el > 110, 'The bull grew wild and hard to manage. It was, after all, a bull.');
+    if (!s.flags.visit1 && c.year >= 2 && c.season.id === 'summer' && c.elapsed > 40) { s.flags.visit1 = true; s.pending = 'visit1'; return; }
+    if (c.season.id === 'autumn' && c.elapsed > 25
+      && sayOnce(s, 'snorri', true, 'Gudrid gave birth to a son. They named him Snorri.', 'He was the first European child known to have been born in the Americas.')) {
+      s.bonuses.push({ label: 'Snorri, born in Vinland', value: 200 });
+    }
+    sayOnce(s, 'ghost', c.season.winter && c.elapsed > 30, 'One evening a pale woman stood in the doorway. She said her name was Gudrid too. Then she was gone.');
+    if (!s.flags.thiefDone && c.year >= 2 && c.season.id === 'spring' && c.elapsed > 15) { s.pending = 'thief'; return; }
+  } else if (s.ch === 4) {
+    if (!s.flags.housesDone && el > 3) { s.flags.housesDone = true; s.pending = 'houses'; return; }
+    if (!s.flags.shipsDone && c.season.winter && c.left < 25) { s.pending = 'ships'; return; }
+  }
+}
+
+// Why the ship cannot sail yet, or '' when it can. 'season' means only the weather is in the way.
+function sailBlock(s) {
+  if (s.phase !== 'camp' || s.pending) return 'busy';
+  if (s.ch === 1 && !shipReady(s)) return 'Finish the repairs first.';
+  if (s.ch === 2) {
+    if ((s.flags.coast || 0) < 3) return 'Thorvald wants to see more of the coast first.';
+    if (!shipReady(s)) return 'Fit a new keel first.';
+  }
+  if (s.ch === 3 && !s.flags.thiefDone) return 'Karlsefni means to stay a while yet.';
+  if (s.ch === 4 && !s.flags.shipsDone) return 'The two camps will sail when the winter is over.';
+  if (!calOf(s).season.sail) return 'season';
+  return '';
+}
+function cargo(s) {
+  let room = holdOf(s);
+  const nuts = Math.min(Math.floor(s.nuts), room); room -= nuts;
+  const furs = Math.min(Math.floor(s.furs), room); room -= furs;
+  const allGrapes = Math.floor(s.grapes);
+  const tow = s.up.towboat ? Math.min(allGrapes, TOW) : 0;
+  const hold = Math.min(allGrapes - tow, room); room -= hold;
+  const timber = Math.min(Math.floor(Math.max(0, s.timber)), room);
+  const grapes = tow + hold;
+  return { timber, grapes, nuts, furs, used: timber + grapes + nuts + furs, room: holdOf(s) + (s.up.towboat ? TOW : 0),
+    value: timber * VALUE.timber + grapes * VALUE.grapes + nuts * VALUE.nuts + furs * VALUE.furs };
+}
+function sail(s) {
+  if (sailBlock(s)) return false;
+  if (s.ch === 3) {
+    if (s.people.trust >= 30) s.bonuses.push({ label: 'Friends among the people of the land', value: 400 });
+    if (s.cattle >= (chap(s).start.cattle || 0) && !s.flags.cowLost) s.bonuses.push({ label: 'The herd came through the winter', value: 150 });
+  }
+  s.voyage = { cargo: cargo(s), rescued: null, seasons: calOf(s).n - calendar(s.t0, chap(s).scale).n + 1, recorded: false };
+  s.phase = 'voyage';
+  return true;
+}
+function decideRescue(s, yes) {
+  if (!s.voyage) return;
+  s.voyage.rescued = !!yes;
+  if (yes) s.bonuses.push({ label: 'Fifteen people saved', value: RESCUE_BONUS });
+}
+const renown = s => s.voyage ? s.voyage.cargo.value + s.bonuses.reduce((a, b) => a + b.value, 0) : 0;
+function finishChapter(s) {
+  if (!s.voyage) return;
+  s.phase = 'summary';
+  if (s.voyage.recorded) return;
+  s.voyage.recorded = true;
+  const r = renown(s);
+  s.renownTotal += r;
+  s.history.push({ ch: s.ch, leader: chap(s).leader, renown: r });
+}
+// ===== ENGINE END =====
+
+// ---------- small helpers ----------
+const $ = q => document.querySelector(q);
+const lerp = (a, b, t) => a + (b - a) * t;
+const hex = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const mixRGB = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+const rgb = (c, a) => a == null ? `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})` : `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const fmt = n => { n = Math.floor(n + 1e-9); return n < 10000 ? String(n) : (n / 1000).toFixed(1) + 'k'; };
+const fmt1 = n => (Math.round(n * 100) / 100).toString();
+const fmtRate = r => { const a = Math.abs(r); if (a < 0.05) return ''; return (r > 0 ? '+' : '−') + (a < 10 ? a.toFixed(1) : Math.round(a)) + '/s'; };
+const mmss = x => { x = Math.max(0, Math.ceil(x)); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0'); };
+const costText = c => Object.keys(c).map(k => c[k] + ' ' + k).join(', ');
+const setText = (el, v) => { if (el && el.textContent !== v) el.textContent = v; };
+const reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function shoreY(u) { const k = clamp((u - 0.12) / 0.62, 0, 1); return 0.665 - 0.165 * k * k * (3 - 2 * k) + 0.004 * Math.sin(u * 37); }
+
+// ---------- sound: wind, waves, an axe, and a lyre ----------
+const NOTES = [146.83, 174.61, 196.0, 220.0, 261.63, 293.66, 349.23, 440.0];
+const Snd = {
+  ctx: null, out: null, muted: false, cache: new Map(), nextNote: 0,
+  init() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try { this.ctx = new AC(); } catch (e) { this.ctx = null; return; }
+    const ctx = this.ctx, sr = ctx.sampleRate;
+    this.out = ctx.createGain(); this.out.gain.value = this.muted ? 0 : 0.9; this.out.connect(ctx.destination);
+    const nb = ctx.createBuffer(1, sr * 4, sr), d = nb.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < d.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+    this.brown = nb;
+    const wb = ctx.createBuffer(1, Math.floor(sr * 0.25), sr), wd = wb.getChannelData(0);
+    for (let i = 0; i < wd.length; i++) wd[i] = Math.random() * 2 - 1;
+    this.white = wb;
+    const bed = (freq, gain, lfoF, lfoD) => {
+      const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
+      const g = ctx.createGain(); g.gain.value = gain;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = lfoF;
+      const lg = ctx.createGain(); lg.gain.value = lfoD;
+      lfo.connect(lg); lg.connect(g.gain);
+      src.connect(f); f.connect(g); g.connect(this.out);
+      src.start(0, Math.random() * 3); lfo.start();
+      return { f, g };
+    };
+    this.wind = bed(420, 0.11, 0.05, 0.05);
+    this.waves = bed(900, 0.055, 0.12, 0.045);
+    this.nextNote = ctx.currentTime + 2;
+  },
+  season(id) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime, w = id === 'winter';
+    this.wind.g.gain.setTargetAtTime(w ? 0.2 : 0.11, t, 2);
+    this.wind.f.frequency.setTargetAtTime(w ? 720 : 420, t, 2);
+    this.waves.g.gain.setTargetAtTime(w ? 0.02 : 0.055, t, 2);
+  },
+  setMuted(m) { this.muted = m; if (this.ctx) this.out.gain.setTargetAtTime(m ? 0 : 0.9, this.ctx.currentTime, 0.05); },
+  pluckBuf(freq) {
+    const key = Math.round(freq);
+    if (this.cache.has(key)) return this.cache.get(key);
+    const ctx = this.ctx, sr = ctx.sampleRate, len = Math.floor(sr * 1.8), N = Math.max(2, Math.round(sr / freq));
+    const buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    for (let i = 0; i < N; i++) d[i] = Math.random() * 2 - 1;
+    for (let i = 1; i < N; i++) d[i] = (d[i] + d[i - 1]) * 0.5;
+    for (let i = N; i < len; i++) d[i] = 0.4985 * (d[i - N] + (i - N - 1 >= 0 ? d[i - N - 1] : 0));
+    const fade = Math.floor(sr * 0.15);
+    for (let i = 0; i < len; i++) { d[i] *= 0.55; if (i > len - fade) d[i] *= (len - i) / fade; }
+    this.cache.set(key, buf);
+    return buf;
+  },
+  pluck(freq, vol, when) {
+    if (!this.ctx || this.muted) return;
+    const src = this.ctx.createBufferSource(); src.buffer = this.pluckBuf(freq);
+    const g = this.ctx.createGain(); g.gain.value = vol;
+    src.connect(g); g.connect(this.out);
+    src.start(this.ctx.currentTime + (when || 0));
+  },
+  noise(freq, q, vol, dur, type) {
+    const ctx = this.ctx, t = ctx.currentTime;
+    const n = ctx.createBufferSource(); n.buffer = this.white;
+    const f = ctx.createBiquadFilter(); f.type = type || 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+    const g = ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    n.connect(f); f.connect(g); g.connect(this.out); n.start(t); n.stop(t + dur + 0.02);
+  },
+  thump(f0, f1, vol, dur) {
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.8);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.out); o.start(t); o.stop(t + dur + 0.02);
+  },
+  chop() { if (!this.ctx || this.muted) return; this.thump(150 + Math.random() * 30, 55, 0.42, 0.16); this.noise(1700 + Math.random() * 700, 1.3, 0.3, 0.07); },
+  work() { if (!this.ctx || this.muted) return; this.thump(120 + Math.random() * 40, 60, 0.09, 0.13); this.noise(1400 + Math.random() * 900, 1.2, 0.06, 0.06); },
+  dig() { if (!this.ctx || this.muted) return; this.thump(90, 45, 0.3, 0.2); this.noise(420, 0.8, 0.22, 0.12, 'lowpass'); },
+  thud() { if (!this.ctx || this.muted) return; this.thump(70, 32, 0.55, 0.5); this.noise(260, 0.7, 0.35, 0.35, 'lowpass'); },
+  buy() { this.pluck(NOTES[4 + Math.floor(Math.random() * 3)], 0.2); },
+  horn() {
+    if (!this.ctx || this.muted) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(0.2, t + 0.35);
+    env.gain.setValueAtTime(0.2, t + 1.0); env.gain.exponentialRampToValueAtTime(0.0001, t + 2.3);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.7;
+    lp.frequency.setValueAtTime(350, t); lp.frequency.linearRampToValueAtTime(1000, t + 0.4); lp.frequency.linearRampToValueAtTime(650, t + 2.2);
+    lp.connect(env); env.connect(this.out);
+    for (const [f, v] of [[110, 1], [110.7, 0.6], [165, 0.3]]) {
+      const o = ctx.createOscillator(); o.type = 'sawtooth';
+      o.frequency.setValueAtTime(f * 0.96, t); o.frequency.linearRampToValueAtTime(f, t + 0.25);
+      const g = ctx.createGain(); g.gain.value = v * 0.3;
+      o.connect(g); g.connect(lp); o.start(t); o.stop(t + 2.4);
+    }
+  },
+  event() { this.pluck(NOTES[5], 0.18); this.pluck(NOTES[7], 0.14, 0.2); },
+  music() {
+    if (!this.ctx || this.muted) return;
+    const now = this.ctx.currentTime;
+    if (now < this.nextNote) return;
+    this.nextNote = now + 6 + Math.random() * 6;
+    const k = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < k; i++) this.pluck(NOTES[Math.floor(Math.random() * 6)], 0.075, i * (0.4 + Math.random() * 0.35));
+  },
+};
+
+// ---------- the painted world: flat colour, one hue per season, dark silhouettes in front ----------
+const PAL_SRC = {   // [night, day] for every surface
+  summer: { skyTop: ['#101d1a', '#a3c7b8'], skyBot: ['#1d322b', '#c8ded2'], sun: ['#cfe1d6', '#eef6ef'], cloud: ['#243a33', '#d6e8de'], far: ['#1a2c26', '#8db0a2'], mid: ['#15241f', '#71958a'], near: ['#121f1a', '#587b6f'], landLo: ['#0d1713', '#46665b'], sea: ['#13251f', '#6a9184'], seaHi: ['#38554b', '#dcebe3'], tree: ['#0a1310', '#2b3e37'], dark: ['#070d0b', '#1d2a26'], sand: ['#2b4038', '#bed3c7'] },
+  autumn: { skyTop: ['#2a110e', '#d0623f'], skyBot: ['#401a14', '#e5875f'], sun: ['#e8a27f', '#f6b38c'], cloud: ['#4c2119', '#ee9c75'], far: ['#34150f', '#bd553b'], mid: ['#2b120d', '#a24530'], near: ['#230f0b', '#843a29'], landLo: ['#1a0b08', '#6b2f21'], sea: ['#2e1410', '#ad5038'], seaHi: ['#6e3226', '#f2a483'], tree: ['#130806', '#381710'], dark: ['#0c0504', '#1f0c08'], sand: ['#4c2219', '#d98262'] },
+  winter: { skyTop: ['#060c19', '#93aabb'], skyBot: ['#12203a', '#c6d4dd'], sun: ['#dfe8f2', '#f1f5f8'], cloud: ['#1b2842', '#dde6ec'], far: ['#17233a', '#7d93a5'], mid: ['#24344f', '#a9bac7'], near: ['#4a5d78', '#e1e9ee'], landLo: ['#38485f', '#c2d0d9'], sea: ['#0d192b', '#566e80'], seaHi: ['#2b3d58', '#d3dee6'], tree: ['#050a10', '#202d37'], dark: ['#04070c', '#141c23'], sand: ['#3e5068', '#d9e3e9'] },
+  spring: { skyTop: ['#1a1913', '#d6bd86'], skyBot: ['#2c2a1e', '#ead7ab'], sun: ['#e9dbb5', '#faefd3'], cloud: ['#363223', '#f2e3c1'], far: ['#24221a', '#b5a171'], mid: ['#1e1c15', '#958659'], near: ['#181911', '#6c6b43'], landLo: ['#121309', '#585935'], sea: ['#1b211c', '#869c8a'], seaHi: ['#474a3b', '#f3e8ca'], tree: ['#0c0d08', '#2d3222'], dark: ['#080905', '#1c1f14'], sand: ['#3a3828', '#d6c69c'] },
+};
+const PAL = {};
+for (const k in PAL_SRC) { PAL[k] = {}; for (const c in PAL_SRC[k]) PAL[k][c] = PAL_SRC[k][c].map(hex); }
+function palette(sid, prev, k, light) {
+  const out = {};
+  for (const c in PAL[sid]) {
+    const cur = mixRGB(PAL[sid][c][0], PAL[sid][c][1], light);
+    out[c] = prev && k < 1 ? mixRGB(mixRGB(PAL[prev][c][0], PAL[prev][c][1], light), cur, k) : cur;
+  }
+  return out;
+}
+const HALL_SPOTS = [{ x: 0.2, y: 0.8 }, { x: 0.33, y: 0.86 }, { x: 0.465, y: 0.79 }, { x: 0.27, y: 0.745 }, { x: 0.41, y: 0.745 }];
+const CHIP_COLORS = ['#d9b27a', '#b98a55', '#efd3a0', '#8f6a42'];
+const SOIL_COLORS = ['#5b4330', '#3e2d20', '#77583d'];
+const SPARK_COLORS = ['#ffcf7a', '#ff9f43', '#ffe6b0'];
+const EMBER_RGB = [255, 176, 88];
+const WING = [[0.86, -0.03], [0.93, 0.0], [0.8, 0.04], [0.86, 0.08], [0.72, 0.09], [0.76, 0.13]];
+
+const R = (() => {
+  const rnd = mulberry32(1021);
+  const trees = [];
+  for (let i = 0; i < 24; i++) {
+    const depth = Math.pow(rnd(), 0.8);
+    trees.push({ x: 0.63 + rnd() * 0.42, base: 0.56 + depth * 0.33, h: 0.09 + depth * 0.17 + rnd() * 0.04, w: 0.42 + rnd() * 0.14, depth, shake: 0, stump: false });
+  }
+  for (let i = 0; i < 16; i++) trees.push({ x: 0.56 + rnd() * 0.46, base: 0.505 + rnd() * 0.04, h: 0.035 + rnd() * 0.03, w: 0.5, depth: 0.05, shake: 0, stump: false });
+  trees.sort((a, b) => a.base - b.base);
+  const front = trees.filter(t => t.depth > 0.5).sort((a, b) => a.x - b.x);
+  const stars = Array.from({ length: 70 }, () => ({ x: rnd(), y: rnd(), r: rnd() < 0.15 ? 2 : 1, sp: 0.5 + rnd() * 2, ph: rnd() * 6.28 }));
+  const flakes = Array.from({ length: 90 }, () => ({ x: rnd(), y: rnd(), vx: -0.008 - rnd() * 0.02, vy: 0.04 + rnd() * 0.06, r: 1 + rnd() * 1.8 }));
+  const leaves = Array.from({ length: 14 }, () => ({ x: rnd(), y: rnd(), vx: 0.02 + rnd() * 0.03, vy: 0.03 + rnd() * 0.03, ph: rnd() * 6.28 }));
+  const floes = Array.from({ length: 8 }, () => ({ u: 0.02 + rnd() * 0.6, d: 0.006 + rnd() * 0.03, w: 0.015 + rnd() * 0.035, h: 0.003 + rnd() * 0.006 }));
+  const tufts = Array.from({ length: 26 }, () => { const u = rnd() * 0.6, top = shoreY(u) + 0.03; return { u, v: top + rnd() * (0.96 - top), w: 0.01 + rnd() * 0.02 }; });
+  const workSpots = Array.from({ length: 10 }, (_, i) => ({ x: 0.615 + (i % 5) * 0.026 + rnd() * 0.01, y: 0.84 + Math.floor(i / 5) * 0.07 + rnd() * 0.02 }));
+  const boatSpots = [{ x: 0.3, y: 0.56 }, { x: 0.42, y: 0.535 }, { x: 0.52, y: 0.522 }, { x: 0.24, y: 0.6 }, { x: 0.47, y: 0.55 }, { x: 0.36, y: 0.585 }];
+  const widths = []; let acc = 0;
+  for (let i = 0; i < 64; i++) { const w = (0.55 + rnd() * 0.9) * (i < 12 ? 1.5 : 1); widths.push(w); acc += w; }
+  const rings = []; let run = 0;
+  for (const w of widths) { run += w; rings.push(run / acc); }
+  const peaks = [[0.3, 0], [0.36, 0.05], [0.41, 0.11], [0.45, 0.07], [0.51, 0.16], [0.56, 0.09], [0.62, 0.19], [0.67, 0.11], [0.73, 0.17], [0.78, 0.1], [0.84, 0.15], [0.9, 0.08], [0.95, 0.13], [1.01, 0.06]];
+  const clouds = [{ x: 0.02, y: 0.1, w: 0.34, h: 0.02, v: 0.004 }, { x: 0.52, y: 0.18, w: 0.24, h: 0.017, v: 0.006 }, { x: 0.28, y: 0.29, w: 0.42, h: 0.024, v: 0.003 }, { x: 0.82, y: 0.06, w: 0.18, h: 0.014, v: 0.005 }];
+  const grass = [{ x: 0.025, n: 7, h: 0.085 }, { x: 0.11, n: 5, h: 0.06 }, { x: 0.52, n: 4, h: 0.05 }, { x: 0.8, n: 6, h: 0.07 }, { x: 0.965, n: 8, h: 0.09 }];
+  return { trees, front, stars, flakes, leaves, floes, tufts, workSpots, boatSpots, rings, ringPh: [rnd() * 6.28, rnd() * 6.28, rnd() * 6.28], peaks, clouds, grass };
+})();
+
+function makeRenderer(canvas) {
+  const rd = { canvas, c: canvas.getContext('2d'), W: 1, H: 1, chips: [], smoke: [], smokeAcc: 0, sparkAcc: 0 };
+  rd.fit = () => {
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    rd.W = Math.max(1, r.width); rd.H = Math.max(1, r.height);
+    rd.c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  if (window.ResizeObserver) new ResizeObserver(() => rd.fit()).observe(canvas);
+  window.addEventListener('resize', () => rd.fit());
+  rd.fit();
+  return rd;
+}
+function emit(rd, x, y, n, colors, o) {
+  o = o || {};
+  for (let i = 0; i < n; i++) {
+    rd.chips.push({ x, y, vx: (Math.random() - 0.5) * (o.spread || 170), vy: (o.up || -60) - Math.random() * (o.upVar || 140),
+      g: o.g == null ? 420 : o.g, life: (o.life || 0.6) + Math.random() * 0.4, age: 0, col: colors[i % colors.length], s: (o.size || 1.6) + Math.random() * 2.4 });
+  }
+  if (rd.chips.length > 260) rd.chips.splice(0, rd.chips.length - 260);
+}
+function drawParticles(rd, c, dt) {
+  for (const p of rd.chips) {
+    p.age += dt; p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    c.globalAlpha = clamp(1 - p.age / p.life, 0, 1);
+    c.fillStyle = p.col; c.fillRect(p.x, p.y, p.s, p.s * 0.7);
+  }
+  c.globalAlpha = 1;
+  rd.chips = rd.chips.filter(p => p.age < p.life);
+}
+const shadeFor = (col, V, amt) => mixRGB(col, [8, 12, 18], (1 - V.light) * (amt == null ? 0.65 : amt));
+
+function drawAurora(c, W, yH, t, a) {
+  c.save(); c.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 3; k++) {
+    const base = yH * (0.42 + k * 0.12), amp = yH * 0.08, h = yH * (0.34 - k * 0.07);
+    const col = k === 1 ? '150,125,255' : '95,255,175';
+    const g = c.createLinearGradient(0, base - h - amp, 0, base + amp);
+    g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(0.72, `rgba(${col},${0.17 * a})`); g.addColorStop(1, `rgba(${col},0)`);
+    c.fillStyle = g;
+    const pts = [];
+    for (let i = 0; i <= 40; i++) {
+      const x = i / 40 * W, u = i / 40;
+      pts.push([x, base + Math.sin(u * 5 + t * 0.12 + k * 2) * amp + Math.sin(u * 13 - t * 0.2 + k) * amp * 0.35]);
+    }
+    c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
+    for (const p of pts) c.lineTo(p[0], p[1]);
+    for (let i = pts.length - 1; i >= 0; i--) c.lineTo(pts[i][0], pts[i][1] - h * (0.65 + 0.35 * Math.sin(i * 0.7 + t * 0.4 + k)));
+    c.closePath(); c.fill();
+  }
+  c.restore();
+}
+function pill(c, x, y, w, h) {
+  const r = h / 2;
+  c.beginPath(); c.moveTo(x + r, y); c.lineTo(x + w - r, y);
+  c.arc(x + w - r, y + r, r, -Math.PI / 2, Math.PI / 2);
+  c.lineTo(x + r, y + h);
+  c.arc(x + r, y + r, r, Math.PI / 2, Math.PI * 1.5);
+  c.closePath(); c.fill();
+}
+const sunRadius = (W, H) => Math.min(W * 0.11, H * 0.16);
+function drawSunMoon(c, W, H, yH, V) {
+  const P = V.pal, R0 = sunRadius(W, H), list = [];
+  if (V.sun) list.push({ x: V.sun.x * W, y: V.sun.y * H, r: R0 * (V.sun.r || 1), col: P.sun, a: 1 });
+  else if (V.phase != null) {
+    const sp = (V.phase - 0.12) / 0.76;
+    if (sp > 0 && sp < 1) list.push({ x: W * (0.06 + 0.88 * sp), y: yH + R0 * 0.3 - Math.sin(Math.PI * sp) * yH * 0.74, r: R0, col: P.sun, a: 1 });
+    const mp = (((V.phase + 0.5) % 1) - 0.12) / 0.76, ma = clamp((0.5 - V.light) * 2.5, 0, 0.92);
+    if (mp > 0 && mp < 1 && ma > 0) list.push({ x: W * (0.06 + 0.88 * mp), y: yH + R0 * 0.3 - Math.sin(Math.PI * mp) * yH * 0.66, r: R0 * 0.52, col: [232, 236, 230], a: ma });
+  }
+  for (const b of list) { c.globalAlpha = b.a; c.fillStyle = rgb(b.col); c.beginPath(); c.arc(b.x, b.y, b.r, 0, 6.2832); c.fill(); }
+  c.globalAlpha = 1;
+}
+function drawClouds(c, W, H, V) {
+  c.fillStyle = rgb(V.pal.cloud, 0.9);
+  for (const cl of R.clouds) {
+    const x = ((((cl.x + V.time * cl.v) % 1.5) + 1.5) % 1.5) - 0.3;
+    pill(c, x * W, cl.y * H, cl.w * W, Math.max(3, cl.h * H));
+  }
+}
+function drawRanges(c, W, H, yH, V) {
+  const P = V.pal;
+  c.fillStyle = rgb(P.far);
+  c.beginPath(); c.moveTo(W * 0.28, yH + 1);
+  for (const pk of R.peaks) c.lineTo(pk[0] * W, yH - pk[1] * H);
+  c.lineTo(W, yH + 1); c.closePath(); c.fill();
+  if (V.snow > 0.05) {
+    c.fillStyle = rgb(P.sun, 0.9 * V.snow);
+    for (let i = 1; i < R.peaks.length - 1; i++) {
+      const [px, ph] = R.peaks[i];
+      if (ph < 0.09) continue;
+      const [ax, ah] = R.peaks[i - 1], [bx, bh] = R.peaks[i + 1], k = 0.28;
+      c.beginPath(); c.moveTo(lerp(px, ax, k) * W, yH - lerp(ph, ah, k) * H); c.lineTo(px * W, yH - ph * H);
+      c.lineTo(lerp(px, bx, k) * W, yH - lerp(ph, bh, k) * H); c.closePath(); c.fill();
+    }
+  }
+  c.fillStyle = rgb(P.mid);
+  c.beginPath(); c.moveTo(W * 0.46, yH + 1);
+  c.bezierCurveTo(W * 0.55, yH - H * 0.05, W * 0.63, yH - H * 0.018, W * 0.72, yH - H * 0.055);
+  c.bezierCurveTo(W * 0.82, yH - H * 0.09, W * 0.92, yH - H * 0.03, W, yH - H * 0.06);
+  c.lineTo(W, yH + 1); c.closePath(); c.fill();
+  c.beginPath(); c.ellipse(W * 0.16, yH + 1, W * 0.075, H * 0.026, 0, Math.PI, 2 * Math.PI); c.fill();
+}
+function drawWaves(c, W, H, yH, P, t, xMax, dir, rows, depth) {
+  c.strokeStyle = rgb(P.seaHi, 0.6); c.lineWidth = Math.max(1, H * 0.0045); c.lineCap = 'round';
+  c.beginPath();
+  for (let j = 0; j < rows; j++) {
+    const f = j / rows, y = yH + 4 + Math.pow(f, 1.35) * depth;
+    const len = 7 + f * 26, amp = 0.8 + f * 2.4, gap = 32 + f * 64;
+    const off = (((t * (5 + f * 14) * dir + j * 41) % gap) + gap) % gap;
+    for (let x = -gap + off; x < xMax; x += gap) {
+      c.moveTo(x, y); c.quadraticCurveTo(x + len * 0.25, y - amp, x + len * 0.5, y); c.quadraticCurveTo(x + len * 0.75, y + amp, x + len, y);
+    }
+  }
+  c.stroke();
+}
+function drawGrass(c, W, H, P) {
+  c.fillStyle = rgb(P.dark);
+  for (const tf of R.grass) {
+    for (let i = 0; i < tf.n; i++) {
+      const bx = (tf.x + (i - tf.n / 2) * 0.007) * W;
+      const bh = tf.h * H * (0.55 + 0.45 * Math.abs(Math.sin(i * 2.1 + tf.x * 9)));
+      const lean = Math.sin(i * 1.7 + tf.x * 5) * bh * 0.35, bw = Math.max(1.5, W * 0.0045);
+      c.beginPath(); c.moveTo(bx - bw, H + 1);
+      c.quadraticCurveTo(bx - bw * 0.3, H - bh * 0.55, bx + lean, H - bh);
+      c.quadraticCurveTo(bx + bw * 0.3, H - bh * 0.5, bx + bw, H + 1);
+      c.closePath(); c.fill();
+    }
+  }
+}
+// A raven seen from below, wings spread, fingered wingtips and a wedge tail.
+function raven(c, x, y, sz, flap, col) {
+  c.fillStyle = col;
+  c.save(); c.translate(x, y);
+  for (const side of [-1, 1]) {
+    c.save(); c.scale(side, 1); c.rotate(-flap * 0.5);
+    c.beginPath(); c.moveTo(0, -0.05 * sz);
+    c.quadraticCurveTo(0.45 * sz, -0.27 * sz, 0.98 * sz, -0.12 * sz);
+    for (const p of WING) c.lineTo(p[0] * sz, p[1] * sz);
+    c.quadraticCurveTo(0.4 * sz, 0.17 * sz, 0.05 * sz, 0.1 * sz);
+    c.closePath(); c.fill();
+    c.restore();
+  }
+  c.beginPath(); c.ellipse(0, 0.03 * sz, 0.085 * sz, 0.2 * sz, 0, 0, 6.2832); c.fill();
+  c.beginPath(); c.arc(0, -0.19 * sz, 0.075 * sz, 0, 6.2832); c.fill();
+  c.beginPath(); c.moveTo(-0.03 * sz, -0.24 * sz); c.lineTo(0, -0.33 * sz); c.lineTo(0.03 * sz, -0.24 * sz); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(-0.08 * sz, 0.17 * sz); c.lineTo(0, 0.4 * sz); c.lineTo(0.08 * sz, 0.17 * sz); c.closePath(); c.fill();
+  c.restore();
+}
+function drawRavens(c, W, H, V) {
+  if (V.light < 0.3) return;
+  const period = V.birds ? 20 : 47, span = V.birds ? 20 : 16, p = (V.time % period) / span;
+  if (p >= 1) return;
+  const dir = Math.floor(V.time / period) % 2 ? -1 : 1, col = rgb(V.pal.dark);
+  for (let k = 0; k < 2; k++) {
+    const q = p - k * 0.045, u = dir > 0 ? lerp(-0.1, 1.1, q) : lerp(1.1, -0.1, q);
+    const sz = Math.max(7, W * 0.024) * (k ? 0.82 : 1);
+    raven(c, u * W, H * (0.2 + 0.06 * k + 0.025 * Math.sin(q * 7 + k)), sz, Math.sin(V.time * 7 + k * 1.3), col);
+  }
+  V.ravens = true;
+}
+function drawKnarr(c, x, y, L, st, P) {
+  const hullRGB = st.tar ? P.dark : mixRGB(P.dark, P.mid, st.planks ? 0.12 : 0.32);
+  const hull = rgb(hullRGB), dark = rgb(P.dark), mastTop = y - L * 0.66;
+  if (st.mast) {
+    c.strokeStyle = rgb(P.dark, 0.8); c.lineWidth = Math.max(0.8, L * 0.006); c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(x, mastTop); c.lineTo(x + L * 0.5, y - L * 0.2);
+    c.moveTo(x, mastTop); c.lineTo(x - L * 0.5, y - L * 0.18);
+    c.moveTo(x, mastTop + L * 0.05); c.lineTo(x + L * 0.22, y - L * 0.05);
+    c.moveTo(x, mastTop + L * 0.05); c.lineTo(x - L * 0.22, y - L * 0.05);
+    c.stroke();
+    c.strokeStyle = st.sail ? '#7a4a2e' : dark; c.lineWidth = Math.max(1.6, L * 0.015); c.lineCap = 'butt';
+    c.beginPath(); c.moveTo(x, y - L * 0.03); c.lineTo(x, mastTop); c.stroke();
+    c.strokeStyle = dark; c.lineWidth = Math.max(1.4, L * 0.012);
+    if (st.sail) {
+      const top = y - L * 0.6, bot = y - L * 0.12, hw = L * 0.28, bulge = L * 0.06;
+      c.save();
+      c.beginPath(); c.moveTo(x - hw, top); c.lineTo(x + hw, top);
+      c.quadraticCurveTo(x + hw + bulge, (top + bot) / 2, x + hw * 0.94, bot);
+      c.quadraticCurveTo(x, bot + bulge * 0.6, x - hw * 0.94, bot);
+      c.quadraticCurveTo(x - hw + bulge * 0.5, (top + bot) / 2, x - hw, top);
+      c.closePath(); c.clip();
+      const n = 7, sw = hw * 2.6 / n;
+      for (let i = 0; i < n; i++) { c.fillStyle = rgb(i % 2 ? P.cloud : mixRGB(P.cloud, P.mid, 0.3)); c.fillRect(x - hw * 1.3 + i * sw, top - 2, sw + 1, bot - top + bulge + 4); }
+      c.restore();
+      c.beginPath(); c.moveTo(x - hw * 1.06, top); c.lineTo(x + hw * 1.06, top); c.stroke();
+    } else {
+      c.beginPath(); c.moveTo(x - L * 0.22, y - L * 0.5); c.lineTo(x + L * 0.22, y - L * 0.5); c.stroke();
+      c.strokeStyle = rgb(P.cloud); c.lineWidth = Math.max(2, L * 0.028);
+      c.beginPath(); c.moveTo(x - L * 0.2, y - L * 0.485); c.lineTo(x + L * 0.2, y - L * 0.485); c.stroke();
+    }
+  }
+  c.fillStyle = hull;
+  c.beginPath();
+  c.moveTo(x - L * 0.5, y - L * 0.17);
+  c.quadraticCurveTo(x - L * 0.44, y + L * 0.06, x, y + L * 0.07);
+  c.quadraticCurveTo(x + L * 0.44, y + L * 0.06, x + L * 0.5, y - L * 0.17);
+  c.quadraticCurveTo(x + L * 0.43, y - L * 0.05, x + L * 0.36, y - L * 0.04);
+  c.lineTo(x - L * 0.36, y - L * 0.04);
+  c.quadraticCurveTo(x - L * 0.43, y - L * 0.05, x - L * 0.5, y - L * 0.17);
+  c.closePath(); c.fill();
+  c.strokeStyle = rgb(mixRGB(hullRGB, P.mid, 0.5)); c.lineWidth = Math.max(1, L * 0.006);
+  for (let i = 1; i <= 3; i++) {
+    c.beginPath(); c.moveTo(x - L * 0.46, y - L * 0.13 + i * L * 0.028);
+    c.quadraticCurveTo(x, y - L * 0.02 + i * L * 0.027, x + L * 0.46, y - L * 0.13 + i * L * 0.028); c.stroke();
+  }
+  if (!st.planks) { c.fillStyle = rgb(P.sand, 0.7); c.fillRect(x - L * 0.2, y - L * 0.015, L * 0.08, L * 0.03); c.fillRect(x + L * 0.1, y - L * 0.005, L * 0.06, L * 0.025); }
+  c.strokeStyle = hull; c.lineWidth = Math.max(2, L * 0.032); c.lineCap = 'round';
+  c.beginPath(); c.moveTo(x + L * 0.48, y - L * 0.14); c.quadraticCurveTo(x + L * 0.57, y - L * 0.24, x + L * 0.55, y - L * 0.34);
+  c.arc(x + L * 0.51, y - L * 0.34, L * 0.04, 0, -Math.PI * 1.75, true); c.stroke();
+  c.beginPath(); c.moveTo(x - L * 0.48, y - L * 0.14); c.quadraticCurveTo(x - L * 0.57, y - L * 0.24, x - L * 0.55, y - L * 0.32);
+  c.arc(x - L * 0.51, y - L * 0.32, L * 0.04, Math.PI, Math.PI * 2.75, false); c.stroke();
+}
+// A figure in a belted tunic. arm is the angle of the working arm; tool is an axe unless 'shovel'.
+function drawPerson(c, x, y, s, col, arm, tool) {
+  c.fillStyle = col; c.strokeStyle = col; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.lineWidth = Math.max(1.4, s * 0.12);
+  c.beginPath(); c.moveTo(x - s * 0.08, y - s * 0.36); c.lineTo(x - s * 0.11, y); c.moveTo(x + s * 0.08, y - s * 0.36); c.lineTo(x + s * 0.11, y); c.stroke();
+  c.beginPath(); c.moveTo(x - s * 0.15, y - s * 0.78); c.lineTo(x + s * 0.15, y - s * 0.78); c.lineTo(x + s * 0.22, y - s * 0.33); c.lineTo(x - s * 0.22, y - s * 0.33); c.closePath(); c.fill();
+  c.beginPath(); c.arc(x, y - s * 0.9, s * 0.125, 0, 6.2832); c.fill();
+  if (arm != null) {
+    c.lineWidth = Math.max(1.3, s * 0.1);
+    const sx = x, sy = y - s * 0.72, ax = sx + Math.cos(arm) * s * 0.5, ay = sy + Math.sin(arm) * s * 0.5;
+    c.beginPath(); c.moveTo(sx, sy); c.lineTo(ax, ay); c.stroke();
+    c.save(); c.translate(ax, ay); c.rotate(arm);
+    if (tool === 'shovel') c.fillRect(-s * 0.03, -s * 0.09, s * 0.2, s * 0.18);
+    else { c.beginPath(); c.moveTo(-s * 0.02, -s * 0.15); c.quadraticCurveTo(s * 0.17, -s * 0.13, s * 0.15, 0); c.quadraticCurveTo(s * 0.17, s * 0.13, -s * 0.02, s * 0.1); c.closePath(); c.fill(); }
+    c.restore();
+  }
+}
+function drawBoats(c, W, H, V) {
+  if (V.snow > 0.6) return;
+  const n = Math.min(6, Math.ceil(V.s.jobs.fish / 2)), col = rgb(V.pal.dark);
+  c.fillStyle = col; c.strokeStyle = col; c.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    const b = R.boatSpots[i], L = W * 0.036;
+    const x = b.x * W + Math.sin(V.time * 0.15 + i) * W * 0.01, y = b.y * H + Math.sin(V.time * 1.6 + i * 2) * 1.2;
+    c.beginPath(); c.moveTo(x - L / 2, y - L * 0.16);
+    c.quadraticCurveTo(x - L * 0.2, y + L * 0.22, x, y + L * 0.2); c.quadraticCurveTo(x + L * 0.2, y + L * 0.22, x + L / 2, y - L * 0.16);
+    c.quadraticCurveTo(x, y - L * 0.02, x - L / 2, y - L * 0.16); c.closePath(); c.fill();
+    c.lineWidth = Math.max(1, L * 0.06);
+    c.beginPath(); c.moveTo(x + L * 0.48, y - L * 0.15); c.lineTo(x + L * 0.54, y - L * 0.3); c.stroke();
+    c.beginPath(); c.arc(x, y - L * 0.34, Math.max(1.2, L * 0.08), 0, 6.2832); c.fill();
+    c.fillRect(x - L * 0.06, y - L * 0.27, L * 0.12, L * 0.22);
+  }
+}
+function drawBooths(c, W, H, V) {
+  const P = V.pal, col = rgb(mixRGB(P.dark, P.near, 0.32)), dark = rgb(P.dark);
+  for (const b of [[0.355, 0.69], [0.395, 0.7], [0.435, 0.688]]) {
+    const x = b[0] * W, y = b[1] * H, sz = W * 0.028;
+    c.fillStyle = col; c.beginPath(); c.moveTo(x - sz, y); c.lineTo(x, y - sz * 0.95); c.lineTo(x + sz, y); c.closePath(); c.fill();
+    if (V.snow > 0.05) { c.fillStyle = rgb(P.sun, 0.85 * V.snow); c.beginPath(); c.moveTo(x - sz * 0.42, y - sz * 0.55); c.lineTo(x, y - sz * 0.95); c.lineTo(x + sz * 0.42, y - sz * 0.55); c.closePath(); c.fill(); }
+    c.fillStyle = dark; c.beginPath(); c.moveTo(x - sz * 0.18, y); c.lineTo(x, y - sz * 0.5); c.lineTo(x + sz * 0.18, y); c.closePath(); c.fill();
+    c.strokeStyle = dark; c.lineWidth = Math.max(1, W * 0.0025);
+    c.beginPath(); c.moveTo(x - sz * 0.13, y - sz * 1.13); c.lineTo(x + sz * 0.05, y - sz * 0.86); c.moveTo(x + sz * 0.13, y - sz * 1.13); c.lineTo(x - sz * 0.05, y - sz * 0.86); c.stroke();
+  }
+}
+function drawShed(c, x, y, w, h, V) {
+  const P = V.pal, hh = h * (1 - 0.7 * V.ruin);
+  if (V.ruin > 0.5) { c.fillStyle = rgb(mixRGB(P.mid, P.near, 0.4)); c.beginPath(); c.ellipse(x, y, w * 0.48, hh * 0.5, 0, Math.PI, 2 * Math.PI); c.fill(); return; }
+  c.fillStyle = rgb(mixRGB(P.dark, P.near, 0.18));
+  c.beginPath(); c.moveTo(x - w / 2, y); c.lineTo(x - w * 0.46, y - hh * 0.6); c.lineTo(x, y - hh); c.lineTo(x + w * 0.46, y - hh * 0.6); c.lineTo(x + w / 2, y); c.closePath(); c.fill();
+  if (V.snow > 0.05) {
+    c.strokeStyle = rgb(P.sun, 0.9 * V.snow); c.lineWidth = Math.max(2, hh * 0.12); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x - w * 0.46, y - hh * 0.6); c.lineTo(x, y - hh); c.lineTo(x + w * 0.46, y - hh * 0.6); c.stroke();
+  }
+  c.fillStyle = rgb(P.dark); c.fillRect(x - w * 0.36, y - hh * 0.55, w * 0.72, hh * 0.55);
+}
+function hallPath(c, x, y, w, hh) {
+  c.beginPath(); c.moveTo(x - w / 2, y);
+  c.bezierCurveTo(x - w / 2, y - hh * 0.9, x - w * 0.36, y - hh, x - w * 0.2, y - hh);
+  c.lineTo(x + w * 0.2, y - hh);
+  c.bezierCurveTo(x + w * 0.36, y - hh, x + w / 2, y - hh * 0.9, x + w / 2, y);
+  c.closePath();
+}
+function drawHall(c, x, y, w, h, V) {
+  const P = V.pal, ruin = V.ruin, hh = h * (1 - 0.6 * ruin);
+  const body = mixRGB(mixRGB(P.dark, P.near, 0.24), mixRGB(P.mid, P.near, 0.5), ruin);
+  c.fillStyle = rgb(P.dark, 0.25);
+  c.beginPath(); c.ellipse(x, y + 1, w * 0.55, Math.max(2, h * 0.14), 0, 0, 6.2832); c.fill();
+  c.fillStyle = rgb(body); hallPath(c, x, y, w, hh); c.fill();
+  if (ruin < 0.6) {
+    c.strokeStyle = rgb(mixRGB(body, P.mid, 0.4), 0.7 * (1 - ruin)); c.lineWidth = 1;
+    for (let i = 1; i <= 2; i++) { const yy = Math.round(y - hh * 0.3 * i) + 0.5; c.beginPath(); c.moveTo(x - w * 0.45, yy); c.lineTo(x + w * 0.45, yy); c.stroke(); }
+  }
+  if (V.snow > 0.05) {
+    c.save(); hallPath(c, x, y, w, hh); c.clip();
+    c.fillStyle = rgb(P.sun, 0.92 * V.snow); c.fillRect(x - w / 2, y - hh - 2, w, hh * 0.4 + 2);
+    c.restore();
+  }
+  if (ruin < 0.3) {
+    c.strokeStyle = rgb(P.dark); c.lineWidth = Math.max(1.2, w * 0.024); c.lineCap = 'round';
+    c.beginPath();
+    for (const sx of [-1, 1]) {
+      const ex = x + sx * w * 0.21, ey = y - hh;
+      c.moveTo(ex - w * 0.05, ey + h * 0.14); c.lineTo(ex + w * 0.035, ey - h * 0.32);
+      c.moveTo(ex + w * 0.05, ey + h * 0.14); c.lineTo(ex - w * 0.035, ey - h * 0.32);
+    }
+    c.stroke();
+  }
+  if (ruin < 0.4) {
+    const dw = Math.max(3, w * 0.09), dh = hh * 0.55, glow = clamp(1 - V.light * 1.4, 0, 1) * (V.people === false ? 0 : 1);
+    c.fillStyle = rgb(mixRGB(P.dark, EMBER_RGB, glow * 0.85 + 0.06));
+    c.fillRect(x - dw / 2, y - dh, dw, dh);
+    if (glow > 0.05) {
+      const g = c.createRadialGradient(x, y - dh * 0.5, 1, x, y - dh * 0.5, w * 0.36);
+      g.addColorStop(0, `rgba(255,170,80,${0.32 * glow})`); g.addColorStop(1, 'rgba(255,170,80,0)');
+      c.fillStyle = g; c.fillRect(x - w * 0.4, y - dh - w * 0.32, w * 0.8, w * 0.64);
+    }
+  }
+}
+function drawSmithy(rd, c, x, y, w, h, V) {
+  const P = V.pal;
+  if (V.ruin > 0.5) { c.fillStyle = rgb(mixRGB(P.mid, P.near, 0.4)); c.beginPath(); c.ellipse(x, y, w * 0.5, h * 0.3, 0, Math.PI, 2 * Math.PI); c.fill(); return; }
+  c.fillStyle = rgb(mixRGB(P.dark, P.near, 0.2));
+  c.beginPath(); c.moveTo(x - w / 2, y); c.lineTo(x - w / 2, y - h * 0.6); c.lineTo(x, y - h); c.lineTo(x + w / 2, y - h * 0.6); c.lineTo(x + w / 2, y); c.closePath(); c.fill();
+  const working = V.people && V.s.jobs.smith > 0;
+  c.fillStyle = working ? '#ffad55' : rgb(P.dark);
+  c.fillRect(x - w * 0.12, y - h * 0.42, w * 0.24, h * 0.42);
+  if (working) {
+    const g = c.createRadialGradient(x, y - h * 0.2, 1, x, y - h * 0.2, w * 1.1);
+    g.addColorStop(0, 'rgba(255,150,60,0.32)'); g.addColorStop(1, 'rgba(255,150,60,0)');
+    c.fillStyle = g; c.fillRect(x - w * 1.1, y - h * 1.3, w * 2.2, h * 1.6);
+    rd.sparkAcc += V.dt;
+    if (rd.sparkAcc > 0.35 && !reduceMotion) { rd.sparkAcc = 0; emit(rd, x, y - h, 3, SPARK_COLORS, { spread: 40, up: -40, upVar: 60, g: 30, life: 0.5, size: 1 }); }
+  }
+}
+function drawTrees(c, W, H, V) {
+  const P = V.pal, stumps = V.ruin < 0.5 ? Math.min(6, Math.floor(V.s.ever.timber / 350)) : 0;
+  R.front.forEach((tr, i) => { tr.stump = i < stumps; });
+  for (const tr of R.trees) {
+    const x = tr.x * W, y = tr.base * H, h = tr.h * H, w = h * tr.w;
+    if (tr.stump) { c.fillStyle = rgb(mixRGB(P.dark, P.near, 0.3)); c.fillRect(x - w * 0.07, y - h * 0.05, w * 0.14, h * 0.05); continue; }
+    tr.shake *= Math.exp(-5 * (V.dt || 0));
+    c.save(); c.translate(x, y);
+    if (tr.shake > 0.01) c.rotate(tr.shake * 0.07 * Math.sin(V.time * 38));
+    c.fillStyle = rgb(mixRGB(P.tree, P.mid, (1 - tr.depth) * 0.62));
+    c.fillRect(-w * 0.05, -h * 0.12, w * 0.1, h * 0.12);
+    for (let i = 0; i < 3; i++) {
+      const ty = -h * (0.1 + i * 0.27), tw = w * (1 - i * 0.26), th = h * 0.45;
+      c.beginPath(); c.moveTo(-tw / 2, ty); c.lineTo(0, ty - th); c.lineTo(tw / 2, ty); c.closePath(); c.fill();
+    }
+    if (V.snow > 0.05) {
+      c.fillStyle = rgb(P.sun, 0.85 * V.snow);
+      for (let i = 0; i < 3; i++) {
+        const ty = -h * (0.1 + i * 0.27), tw = w * (1 - i * 0.26), th = h * 0.45;
+        c.beginPath(); c.moveTo(-tw * 0.19, ty - th * 0.6); c.lineTo(0, ty - th); c.lineTo(tw * 0.19, ty - th * 0.6); c.closePath(); c.fill();
+      }
+    }
+    c.restore();
+  }
+}
+function drawWorkers(c, W, H, V) {
+  const n = Math.min(10, V.s.jobs.wood), col = rgb(V.pal.dark);
+  for (let i = 0; i < n; i++) {
+    const sp = R.workSpots[i], sw = Math.sin(V.time * 5 + i * 1.7);
+    drawPerson(c, sp.x * W, sp.y * H, H * 0.06, col, -0.9 + sw * 1.3);
+  }
+}
+function updateSmoke(rd, W, H, V) {
+  const dt = V.dt || 0;
+  if (V.people !== false && V.ruin < 0.3) {
+    rd.smokeAcc += dt;
+    if (rd.smokeAcc > (reduceMotion ? 0.6 : 0.24)) {
+      rd.smokeAcc = 0;
+      for (let i = 0; i < V.s.halls; i++) {
+        const sp = HALL_SPOTS[i];
+        rd.smoke.push({ x: sp.x * W + W * 0.02, y: sp.y * H - H * 0.075, r: 1.5, a: 0.42, vx: 3 + Math.random() * 3, vy: -7 - Math.random() * 5 });
+      }
+      if (V.s.ch === 4 && V.s.flags.brothersHouse && !V.s.flags.massacre) rd.smoke.push({ x: W * 0.595, y: H * 0.7, r: 1.5, a: 0.42, vx: 3 + Math.random() * 3, vy: -7 - Math.random() * 5 });
+    }
+  }
+  const col = rgb(V.pal.cloud);
+  for (const p of rd.smoke) {
+    p.x += p.vx * dt; p.y += p.vy * dt; p.r += 2.3 * dt; p.a -= 0.09 * dt;
+    if (p.a > 0) { rd.c.globalAlpha = p.a; rd.c.fillStyle = col; rd.c.beginPath(); rd.c.arc(p.x, p.y, p.r, 0, 6.2832); rd.c.fill(); }
+  }
+  rd.c.globalAlpha = 1;
+  rd.smoke = rd.smoke.filter(p => p.a > 0);
+}
+function drawWeather(c, W, H, V) {
+  const t = V.time;
+  if (V.snow > 0.02) {
+    c.fillStyle = `rgba(242,246,248,${0.85 * V.snow})`;
+    for (const f of R.flakes) { const x = (((f.x + t * f.vx) % 1) + 1) % 1 * W, y = ((f.y + t * f.vy) % 1) * H; c.fillRect(x, y, f.r, f.r); }
+  }
+  if (V.autumn > 0.02) {
+    c.fillStyle = rgb(mixRGB(V.pal.dark, V.pal.mid, 0.25));
+    for (const l of R.leaves) {
+      const x = ((l.x + t * l.vx) % 1) * W, y = ((l.y + t * l.vy) % 1) * H;
+      c.globalAlpha = 0.85 * V.autumn;
+      c.save(); c.translate(x, y); c.rotate(Math.sin(t * 2 + l.ph)); c.fillRect(-2, -1, 4, 2.4); c.restore();
+    }
+    c.globalAlpha = 1;
+  }
+}
+function drawRacks(c, W, H, V) {
+  const x = W * 0.52, y = H * 0.69, w = W * 0.05, h = H * 0.062;
+  c.strokeStyle = rgb(V.pal.dark); c.lineWidth = Math.max(1.2, W * 0.003);
+  c.beginPath(); c.moveTo(x - w / 2, y); c.lineTo(x - w / 2, y - h); c.moveTo(x + w / 2, y); c.lineTo(x + w / 2, y - h);
+  c.moveTo(x - w * 0.62, y - h); c.lineTo(x + w * 0.62, y - h); c.stroke();
+  c.fillStyle = rgb(V.pal.sand);
+  for (let i = 0; i < 4; i++) { c.beginPath(); c.ellipse(x - w * 0.36 + i * w * 0.24, y - h * 0.66, Math.max(1, w * 0.06), h * 0.26, 0, 0, 6.2832); c.fill(); }
+}
+// Chapters III and IV: the herd, the byre, the palisade, and the people who come to trade.
+const COW_SPOTS = [[0.06, 0.93], [0.11, 0.955], [0.16, 0.925], [0.215, 0.96], [0.27, 0.935], [0.035, 0.975], [0.19, 0.985], [0.31, 0.97], [0.09, 0.99], [0.245, 0.99], [0.345, 0.94], [0.135, 0.975]];
+function drawCow(c, x, y, sz, col, bull, t, i) {
+  c.fillStyle = col; c.strokeStyle = col;
+  const graze = Math.sin(t * 0.7 + i * 1.9) > 0.2 ? sz * 0.2 : 0;
+  c.beginPath(); c.ellipse(x, y - sz * 0.48, sz * 0.52, sz * 0.27, 0, 0, 6.2832); c.fill();
+  for (const lx of [-0.38, -0.2, 0.18, 0.34]) c.fillRect(x + lx * sz, y - sz * 0.32, sz * 0.08, sz * 0.32);
+  c.beginPath(); c.ellipse(x + sz * 0.6, y - sz * 0.55 + graze, sz * 0.17, sz * 0.12, 0.5, 0, 6.2832); c.fill();
+  c.lineWidth = Math.max(1, sz * 0.06); c.lineCap = 'round';
+  c.beginPath(); c.moveTo(x - sz * 0.5, y - sz * 0.55); c.quadraticCurveTo(x - sz * 0.62, y - sz * 0.4, x - sz * 0.58, y - sz * 0.25); c.stroke();
+  if (bull) { c.beginPath(); c.moveTo(x + sz * 0.58, y - sz * 0.64 + graze); c.quadraticCurveTo(x + sz * 0.66, y - sz * 0.86 + graze, x + sz * 0.8, y - sz * 0.8 + graze); c.stroke(); }
+}
+function drawCattle(c, W, H, V) {
+  const s = V.s;
+  if (!s.cattle || (V.snow > 0.5 && s.built.byre)) return;
+  const col = rgb(mixRGB(V.pal.dark, V.pal.near, 0.16)), n = Math.min(COW_SPOTS.length, s.cattle);
+  for (let i = 0; i < n; i++) { const p = COW_SPOTS[i]; drawCow(c, p[0] * W, p[1] * H, H * 0.045, col, false, V.time, i); }
+  drawCow(c, W * 0.39, H * 0.975, H * 0.056, rgb(V.pal.dark), true, V.time, 99);
+}
+function drawByre(c, W, H, V) {
+  const P = V.pal, x = W * 0.06, y = H * 0.865, w = W * 0.085, hh = H * 0.05 * (1 - 0.6 * V.ruin);
+  c.fillStyle = rgb(mixRGB(mixRGB(P.dark, P.near, 0.24), mixRGB(P.mid, P.near, 0.5), V.ruin));
+  hallPath(c, x, y, w, hh); c.fill();
+  if (V.snow > 0.05) { c.save(); hallPath(c, x, y, w, hh); c.clip(); c.fillStyle = rgb(P.sun, 0.92 * V.snow); c.fillRect(x - w / 2, y - hh - 2, w, hh * 0.4 + 2); c.restore(); }
+  if (V.ruin < 0.4) { c.fillStyle = rgb(P.dark); c.fillRect(x + w * 0.12, y - hh * 0.5, w * 0.12, hh * 0.5); }
+}
+function drawPalisade(c, W, H, V) {
+  const P = V.pal, y = H * 0.885, x0 = W * 0.12, x1 = W * 0.53, step = Math.max(3, W * 0.011), h = H * 0.05;
+  c.fillStyle = rgb(P.dark);
+  for (let x = x0; x <= x1; x += step) {
+    if (x > W * 0.285 && x < W * 0.325) continue;   // the gate
+    const hh = h * (0.85 + 0.15 * Math.sin(x * 1.7));
+    c.beginPath(); c.moveTo(x - step * 0.36, y); c.lineTo(x - step * 0.36, y - hh); c.lineTo(x, y - hh - step * 0.6);
+    c.lineTo(x + step * 0.36, y - hh); c.lineTo(x + step * 0.36, y); c.closePath(); c.fill();
+  }
+  const rail = Math.max(1.5, h * 0.08);
+  c.fillRect(x0 - step * 0.4, y - h * 0.55, W * 0.285 - x0 + step * 0.4, rail);
+  c.fillRect(W * 0.325, y - h * 0.55, x1 - W * 0.325 + step * 0.4, rail);
+}
+function drawVisitors(c, W, H, V) {
+  const P = V.pal, col = rgb(mixRGB(P.dark, P.mid, 0.1));
+  c.fillStyle = col;
+  for (const p of [[0.5, 0.548], [0.535, 0.54]]) {
+    const x = p[0] * W, y = p[1] * H, L = W * 0.045;
+    c.beginPath(); c.moveTo(x - L / 2, y - L * 0.06); c.quadraticCurveTo(x, y + L * 0.18, x + L / 2, y - L * 0.06);
+    c.quadraticCurveTo(x, y + L * 0.02, x - L / 2, y - L * 0.06); c.closePath(); c.fill();
+  }
+  for (let i = 0; i < 4; i++) {
+    const x = W * (0.555 + i * 0.022), y = H * (0.6 + (i % 2) * 0.012);
+    drawPerson(c, x, y, H * 0.05, col, null);
+    c.fillStyle = rgb(P.sand); c.fillRect(x - H * 0.012, y - H * 0.043, H * 0.024, H * 0.016);
+  }
+}
+function shipLook(s) { return { afloat: shipReady(s) && s.phase === 'camp', planks: !!s.ship.planks, tar: !!s.ship.tar, mast: !!s.ship.mast, sail: false }; }
+
+function drawCamp(rd, V, W, H) {
+  const c = rd.c, P = V.pal, s = V.s, t = V.time;
+  const yH = H * 0.5;
+  let g = c.createLinearGradient(0, 0, 0, yH);
+  g.addColorStop(0, rgb(P.skyTop)); g.addColorStop(1, rgb(P.skyBot));
+  c.fillStyle = g; c.fillRect(0, 0, W, yH + 2);
+  const dark = 1 - V.light;
+  if (dark > 0.45) {
+    const a = Math.min(1, (dark - 0.45) / 0.45);
+    c.fillStyle = '#eef1fb';
+    for (const st of R.stars) { c.globalAlpha = a * (0.5 + 0.5 * Math.sin(t * st.sp + st.ph)); c.fillRect(st.x * W, st.y * yH * 0.92, st.r, st.r); }
+    c.globalAlpha = 1;
+  }
+  if (V.aurora > 0.02) drawAurora(c, W, yH, t, V.aurora);
+  drawSunMoon(c, W, H, yH, V);
+  drawClouds(c, W, H, V);
+  if (V.people || V.birds) drawRavens(c, W, H, V);
+  drawRanges(c, W, H, yH, V);
+  c.fillStyle = rgb(P.sea); c.fillRect(0, yH, W, H - yH);
+  drawWaves(c, W, H, yH, P, t, W * 0.76, 1, 7, H * 0.15);
+  if (V.snow > 0.05) {
+    c.fillStyle = rgb(P.seaHi, 0.8 * V.snow);
+    for (const fl of R.floes) { c.beginPath(); c.ellipse(fl.u * W, H * (shoreY(fl.u) - fl.d), fl.w * W, Math.max(1, fl.h * H), 0, 0, 6.2832); c.fill(); }
+  }
+  const ship = V.noShip ? null : shipLook(s);
+  if (V.people) drawBoats(c, W, H, V);
+  if (ship && ship.afloat) drawKnarr(c, W * 0.14, H * 0.635 + Math.sin(t * 1.3) * 1.2, W * 0.2, ship, P);
+  g = c.createLinearGradient(0, yH, 0, H);
+  g.addColorStop(0, rgb(P.near)); g.addColorStop(1, rgb(P.landLo));
+  c.fillStyle = g;
+  c.beginPath(); c.moveTo(0, H * shoreY(0));
+  for (let u = 0.02; u <= 0.761; u += 0.02) c.lineTo(u * W, H * shoreY(u));
+  c.lineTo(W, yH); c.lineTo(W, H); c.lineTo(0, H); c.closePath(); c.fill();
+  c.strokeStyle = rgb(P.sand, 0.9); c.lineWidth = Math.max(1.5, H * 0.007);
+  c.beginPath(); c.moveTo(0, H * shoreY(0));
+  for (let u = 0.02; u <= 0.741; u += 0.02) c.lineTo(u * W, H * shoreY(u));
+  c.stroke();
+  c.fillStyle = rgb(mixRGB(P.landLo, P.dark, 0.3), 0.6);
+  for (const tf of R.tufts) c.fillRect(tf.u * W, tf.v * H, tf.w * W, Math.max(1, H * 0.005));
+  c.fillStyle = rgb(mixRGB(P.landLo, P.dark, 0.45), 0.95);
+  c.beginPath(); c.ellipse(W * 0.6, H * 0.935, W * 0.085, H * 0.03, 0, 0, 6.2832); c.fill();
+  if (V.ruin < 0.05) drawBooths(c, W, H, V);
+  if (s.up.racks && V.ruin < 0.05) drawRacks(c, W, H, V);
+  if (s.built.byre) drawByre(c, W, H, V);
+  if (s.built.shed) drawShed(c, W * 0.13, H * 0.715, W * 0.2, H * 0.09, V);
+  if (ship && !ship.afloat) drawKnarr(c, W * 0.13, H * 0.725, W * 0.2, ship, P);
+  for (const sp of HALL_SPOTS.slice(0, s.halls).sort((p, q) => p.y - q.y)) drawHall(c, sp.x * W, sp.y * H, W * 0.13, H * 0.075, V);
+  if (s.ch === 4 && s.flags.brothersHouse) drawHall(c, W * 0.575, H * 0.77, W * 0.11, H * 0.068, s.flags.massacre ? Object.assign({}, V, { people: false }) : V);
+  if (s.built.smithy) drawSmithy(rd, c, W * 0.535, H * 0.905, W * 0.055, H * 0.055, V);
+  if (s.built.palisade && V.ruin < 0.5) drawPalisade(c, W, H, V);
+  if (V.people) drawCattle(c, W, H, V);
+  drawTrees(c, W, H, V);
+  if (V.people) drawWorkers(c, W, H, V);
+  if (V.people && s.visit) drawVisitors(c, W, H, V);
+  updateSmoke(rd, W, H, V);
+  drawWeather(c, W, H, V);
+  drawGrass(c, W, H, P);
+  if (V.extra) V.extra(c, W, H);
+  drawParticles(rd, c, V.dt || 0);
+}
+// Draw the camp in a landscape band, so tall phone screens still get a wide view.
+function drawCampBand(rd, V) {
+  const W = rd.W, H = rd.H, h = Math.min(H, W / 1.3), oy = Math.round((H - h) * 0.4), c = rd.c;
+  if (oy > 0) {
+    c.fillStyle = rgb(V.pal.skyTop); c.fillRect(0, 0, W, oy + 1);
+    c.fillStyle = rgb(V.pal.landLo); c.fillRect(0, oy + h - 1, W, H - oy - h + 1);
+  }
+  c.save(); c.translate(0, oy); drawCamp(rd, V, W, h); c.restore();
+  return { oy, h };
+}
+function campView(s, time, dt) {
+  const cal = calOf(s), sid = cal.season.id, prev = SEASONS[(cal.i + 3) % 4].id;
+  const k = s.t - s.t0 < 1 ? 1 : clamp(cal.elapsed / 12, 0, 1);
+  const light = daylight(s.t, sid);
+  return {
+    s, cal, light, sid, time, dt, ruin: 0, people: true,
+    phase: ((s.t + DAY_LEN * 0.32) % DAY_LEN) / DAY_LEN,
+    pal: palette(sid, prev, k, light),
+    snow: sid === 'winter' ? k : (sid === 'spring' ? 1 - k : 0),
+    autumn: sid === 'autumn' ? k : (sid === 'winter' ? 1 - k : 0),
+    aurora: clamp((0.35 - light) / 0.3, 0, 1) * (sid === 'winter' ? 1 : sid === 'autumn' ? 0.45 : 0.12),
+  };
+}
+function stillView(sid, light, extra) {
+  return Object.assign({ s: S, light, sid, time: TV.time, dt: TV.dt, ruin: 0, people: false, noShip: true, phase: null,
+    pal: palette(sid, null, 1, light), snow: sid === 'winter' ? 1 : 0, autumn: 0, aurora: 0 }, extra || {});
+}
+
+function drawVoyage(rd) {
+  const c = rd.c, W = rd.W, H = rd.H, t = TV.time;
+  const P = palette('summer', null, 1, 0.95);
+  const h = Math.min(H, W / 1.25), oy = Math.round((H - h) * 0.4), yH = oy + h * 0.56;
+  let g = c.createLinearGradient(0, 0, 0, yH);
+  g.addColorStop(0, rgb(P.skyTop)); g.addColorStop(1, rgb(P.skyBot));
+  c.fillStyle = g; c.fillRect(0, 0, W, yH + 1);
+  c.fillStyle = rgb(P.sun);
+  c.beginPath(); c.arc(W * 0.74, oy + h * 0.2, Math.min(W * 0.13, h * 0.17), 0, 6.2832); c.fill();
+  c.fillStyle = rgb(P.cloud, 0.9);
+  for (const cl of R.clouds) { const x = ((((cl.x - t * cl.v * 3) % 1.5) + 1.5) % 1.5) - 0.3; pill(c, x * W, oy + cl.y * h, cl.w * W, Math.max(3, cl.h * h)); }
+  c.fillStyle = rgb(P.far);
+  c.beginPath(); c.moveTo(0, yH + 1);
+  for (const pk of R.peaks) c.lineTo(((pk[0] - 0.3) / 0.71) * W, yH - pk[1] * h * 0.5);
+  c.lineTo(W, yH + 1); c.closePath(); c.fill();
+  if (TV.land > 0.01) {
+    const pts = [[0.4, 0], [0.48, 0.12], [0.55, 0.07], [0.62, 0.2], [0.69, 0.1], [0.76, 0.24], [0.83, 0.13], [0.9, 0.19], [0.96, 0.09], [1.02, 0.15]];
+    const top = p => yH - p[1] * h * TV.land;
+    c.fillStyle = rgb(P.mid);
+    c.beginPath(); c.moveTo(W * 0.38, yH + 1);
+    for (const p of pts) c.lineTo(p[0] * W, top(p));
+    c.lineTo(W, yH + 1); c.closePath(); c.fill();
+    c.fillStyle = rgb(P.sun, 0.95);
+    for (let i = 1; i < pts.length - 1; i++) {
+      if (pts[i][1] < 0.12) continue;
+      const a = pts[i - 1], p = pts[i], b = pts[i + 1], k = 0.3;
+      c.beginPath(); c.moveTo(lerp(p[0], a[0], k) * W, lerp(top(p), top(a), k)); c.lineTo(p[0] * W, top(p)); c.lineTo(lerp(p[0], b[0], k) * W, lerp(top(p), top(b), k)); c.closePath(); c.fill();
+    }
+  }
+  c.fillStyle = rgb(P.sea); c.fillRect(0, yH, W, H - yH);
+  c.fillStyle = rgb(mixRGB(P.sea, P.dark, 0.28)); c.fillRect(0, yH + (H - yH) * 0.62, W, H);
+  drawWaves(c, W, H, yH, P, t * 3, W + 60, -1, 10, H - yH - 12);
+  if (TV.reef > 0.01) {
+    const rx = W * (1.02 - 0.3 * TV.reef), ry = yH + h * 0.04, col = rgb(P.dark);
+    c.globalAlpha = Math.min(1, TV.reef * 1.5);
+    c.fillStyle = col;
+    c.beginPath(); c.ellipse(rx, ry, W * 0.11, h * 0.022, 0, Math.PI, 2 * Math.PI); c.fill();
+    c.beginPath(); c.ellipse(rx + W * 0.05, ry, W * 0.05, h * 0.035, 0, Math.PI, 2 * Math.PI); c.fill();
+    if (!TV.rescued) for (let i = 0; i < 6; i++) drawPerson(c, rx - W * 0.06 + i * W * 0.022, ry - h * 0.018, h * 0.045, col, -1.6 + Math.sin(t * 4 + i) * 0.5);
+    c.fillStyle = rgb(P.seaHi, 0.8); c.fillRect(rx - W * 0.13, ry - 1, W * 0.26, 2);
+    c.globalAlpha = 1;
+  }
+  const L = Math.min(W * 0.56, h * 0.66);
+  c.save();
+  c.translate(W * 0.42, yH + h * 0.16 + Math.sin(t * 1.4) * h * 0.008);
+  c.rotate(Math.sin(t * 1.1) * 0.03);
+  drawKnarr(c, 0, 0, L, { planks: true, tar: true, mast: true, sail: true }, P);
+  c.restore();
+  c.fillStyle = rgb(P.seaHi, 0.7);
+  c.beginPath(); c.ellipse(W * 0.42 + L * 0.5, yH + h * 0.16 + L * 0.02, L * 0.08, L * 0.015, 0, 0, 6.2832); c.fill();
+}
+const ARTIFACTS = [
+  { kind: 'rivet', text: 'An iron rivet from a ship. Someone repaired a boat here.', mine: s => s.built.shed ? 'Your boat shed stood here.' : '' },
+  { kind: 'slag', text: 'Slag from smelting bog iron. It is the earliest known iron smelting in the Americas.', mine: s => s.built.smithy ? 'Your smithy.' : '' },
+  { kind: 'whorl', text: 'A small soapstone weight for spinning yarn. Women came on the later voyages.', mine: () => '' },
+  { kind: 'pin', text: 'A bronze cloak pin, of a kind the Norse wore.', mine: () => '' },
+  { kind: 'nuts', text: 'Butternuts. They do not grow this far north. Someone brought them from far to the south.', mine: s => s.found.nuts ? 'Your explorers brought back a sackful.' : '' },
+];
+function drawArtifact(c, kind, x, y, s) {
+  const g = c.createRadialGradient(x, y, 0, x, y, s * 1.7);
+  g.addColorStop(0, 'rgba(255,224,160,0.6)'); g.addColorStop(1, 'rgba(255,224,160,0)');
+  c.fillStyle = g; c.fillRect(x - s * 1.7, y - s * 1.7, s * 3.4, s * 3.4);
+  if (kind === 'rivet') {
+    c.fillStyle = '#5f5650'; c.fillRect(x - s * 0.1, y - s * 0.5, s * 0.2, s * 0.95);
+    c.beginPath(); c.ellipse(x, y - s * 0.5, s * 0.36, s * 0.13, 0, 0, 6.2832); c.fill();
+    c.fillStyle = '#7b5a40'; c.fillRect(x - s * 0.24, y + s * 0.3, s * 0.48, s * 0.13);
+  } else if (kind === 'slag') {
+    c.fillStyle = '#3b3633'; c.beginPath();
+    for (let i = 0; i <= 12; i++) { const a = i / 12 * 6.2832, r = s * (0.45 + 0.12 * Math.sin(i * 2.7)); c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.7); }
+    c.fill(); c.fillStyle = '#8a4f33'; c.fillRect(x - s * 0.15, y - s * 0.1, s * 0.12, s * 0.1); c.fillRect(x + s * 0.12, y + s * 0.05, s * 0.1, s * 0.08);
+  } else if (kind === 'whorl') {
+    c.fillStyle = '#8e938d'; c.beginPath(); c.ellipse(x, y, s * 0.55, s * 0.4, 0, 0, 6.2832); c.fill();
+    c.fillStyle = '#2b2622'; c.beginPath(); c.ellipse(x, y, s * 0.12, s * 0.09, 0, 0, 6.2832); c.fill();
+  } else if (kind === 'pin') {
+    c.strokeStyle = '#c09048'; c.lineWidth = Math.max(2, s * 0.12); c.lineCap = 'round';
+    c.beginPath(); c.arc(x, y - s * 0.45, s * 0.26, 0, 6.2832); c.stroke();
+    c.beginPath(); c.moveTo(x, y - s * 0.2); c.lineTo(x, y + s * 0.75); c.stroke();
+  } else {
+    for (const dx of [-0.28, 0.3]) {
+      c.fillStyle = '#6b4a2e'; c.beginPath(); c.ellipse(x + dx * s, y, s * 0.26, s * 0.38, dx * 0.6, 0, 6.2832); c.fill();
+      c.strokeStyle = '#3f2b1a'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + dx * s, y - s * 0.32); c.lineTo(x + dx * s, y + s * 0.32); c.stroke();
+    }
+  }
+}
+function digExtras(c, W, H) {
+  const P = palette('summer', null, 1, 0.88);
+  const x = W * 0.2, y = H * 0.8, w = W * 0.1;
+  const d = Math.max(2, H * 0.07 * TV.dig);
+  c.fillStyle = rgb(mixRGB(P.landLo, P.dark, 0.55)); c.fillRect(x - w / 2, y - H * 0.028, w, d);
+  c.fillStyle = rgb(P.landLo); c.beginPath(); c.ellipse(x + w * 0.85, y - H * 0.01, w * 0.32, H * 0.02 + d * 0.25, 0, Math.PI, 2 * Math.PI); c.fill();
+  const swing = TV.digSwing > 0 ? -0.2 - TV.digSwing * 1.4 : -0.3, col = rgb(P.dark);
+  drawPerson(c, x + w * 0.62, y - H * 0.025, H * 0.07, col, swing, 'shovel');
+  drawPerson(c, x - w * 0.78, y - H * 0.018, H * 0.07, col, -2.2);
+  if (TV.art) {
+    const a = TV.art, k = clamp(a.t / 0.5, 0, 1);
+    drawArtifact(c, a.kind, x, y - H * 0.06 - k * H * 0.1, H * 0.055 * (0.6 + 0.4 * k));
+  }
+}
+function blob(c, cx, cy, r) {
+  const ph = R.ringPh;
+  c.beginPath();
+  for (let a = 0; a <= 72; a++) {
+    const th = a / 72 * 6.2832;
+    const rr = r * (1 + 0.03 * Math.sin(3 * th + ph[0]) + 0.018 * Math.sin(5 * th + ph[1]) + 0.01 * Math.sin(9 * th + ph[2]));
+    const px = cx + Math.cos(th) * rr, py = cy + Math.sin(th) * rr * 0.96;
+    if (a) c.lineTo(px, py); else c.moveTo(px, py);
+  }
+  c.closePath();
+}
+function drawRings(rd) {
+  const c = rd.c, W = rd.W, H = rd.H;
+  c.fillStyle = '#15110d'; c.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = H * 0.37, R0 = Math.min(W * 0.4, H * 0.25);
+  const lg = c.createRadialGradient(cx, cy, R0 * 0.2, cx, cy, R0 * 2.4);
+  lg.addColorStop(0, 'rgba(233,164,91,0.2)'); lg.addColorStop(1, 'rgba(233,164,91,0)');
+  c.fillStyle = lg; c.fillRect(0, 0, W, H);
+  blob(c, cx, cy, R0 * 1.07); c.fillStyle = '#3d2a1d'; c.fill();
+  const N = R.rings.length;
+  for (let i = N - 1; i >= 0; i--) { blob(c, cx, cy, R0 * R.rings[i]); c.fillStyle = i % 2 ? '#d9b887' : '#cda877'; c.fill(); }
+  c.strokeStyle = 'rgba(118,76,44,0.55)'; c.lineWidth = 1;
+  for (let i = 0; i < N; i++) { blob(c, cx, cy, R0 * R.rings[i]); c.stroke(); }
+  c.strokeStyle = 'rgba(70,45,28,0.55)'; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(cx + R0 * 0.12, cy - R0 * 0.04); c.lineTo(cx + R0 * 0.78, cy - R0 * 0.33);
+  c.moveTo(cx - R0 * 0.18, cy + R0 * 0.1); c.lineTo(cx - R0 * 0.62, cy + R0 * 0.52); c.stroke();
+  const i993 = N - 29;
+  let label = '';
+  if (TV.mark > 0.01) {
+    c.strokeStyle = `rgba(240,170,90,${TV.mark})`; c.lineWidth = 3.5;
+    blob(c, cx, cy, R0 * R.rings[i993]); c.stroke();
+    label = '993';
+  }
+  if (TV.count > 0) {
+    const idx = Math.min(N - 1, i993 + Math.round(TV.count * 28));
+    c.strokeStyle = 'rgba(255,240,210,0.95)'; c.lineWidth = 2.5;
+    blob(c, cx, cy, R0 * R.rings[idx]); c.stroke();
+    label = String(993 + idx - i993);
+  }
+  if (TV.finalRing > 0) {
+    c.strokeStyle = `rgba(255,190,110,${0.6 + 0.4 * Math.sin(TV.time * 3)})`; c.lineWidth = 4;
+    blob(c, cx, cy, R0); c.stroke();
+    label = '1021';
+  }
+  if (label) {
+    c.fillStyle = '#f1e3c8'; c.textAlign = 'center'; c.textBaseline = 'top';
+    c.font = `500 ${Math.round(clamp(R0 * 0.2, 20, 40))}px Alegreya, Georgia, serif`;
+    c.fillText('Ring ' + label, cx, cy + R0 * 1.14);
+  }
+}
+// The last scene: a red dawn, a clearing, one tree. After the tap, it falls.
+function drawFinal(rd) {
+  const c = rd.c, W = rd.W, H = rd.H, t = TV.time, dt = TV.dt;
+  const P = palette('autumn', null, 1, 0.92), gy = H * 0.66;
+  let g = c.createLinearGradient(0, 0, 0, gy);
+  g.addColorStop(0, rgb(P.skyTop)); g.addColorStop(1, rgb(P.skyBot));
+  c.fillStyle = g; c.fillRect(0, 0, W, gy + 1);
+  c.fillStyle = rgb(P.sun);
+  c.beginPath(); c.arc(W * 0.3, gy - H * 0.31, Math.min(W, H) * 0.17, 0, 6.2832); c.fill();
+  c.fillStyle = rgb(P.cloud, 0.9);
+  for (const cl of R.clouds) { const x = ((((cl.x + t * cl.v) % 1.5) + 1.5) % 1.5) - 0.3; pill(c, x * W, cl.y * gy * 1.15, cl.w * W, Math.max(3, cl.h * H * 0.8)); }
+  for (let k = 0; k < 2; k++) {
+    const u = ((((0.12 + t * 0.014 + k * 0.09) % 1.35) + 1.35) % 1.35) - 0.15;
+    raven(c, u * W, H * (0.3 + k * 0.05) + Math.sin(t * 0.8 + k) * H * 0.01, Math.max(14, Math.min(W, H) * (k ? 0.05 : 0.068)), Math.sin(t * 2.4 + k * 1.4), rgb(P.dark));
+  }
+  c.fillStyle = rgb(P.far);
+  c.beginPath(); c.moveTo(0, gy + 1);
+  for (const pk of R.peaks) c.lineTo(((pk[0] - 0.3) / 0.71) * W, gy - pk[1] * H * 1.25 - H * 0.02);
+  c.lineTo(W, gy + 1); c.closePath(); c.fill();
+  c.fillStyle = rgb(P.mid);
+  c.beginPath(); c.moveTo(0, gy + 1);
+  c.bezierCurveTo(W * 0.2, gy - H * 0.07, W * 0.38, gy - H * 0.02, W * 0.55, gy - H * 0.06);
+  c.bezierCurveTo(W * 0.72, gy - H * 0.1, W * 0.88, gy - H * 0.03, W, gy - H * 0.05);
+  c.lineTo(W, gy + 1); c.closePath(); c.fill();
+  c.fillStyle = rgb(P.near); c.fillRect(0, gy, W, H - gy);
+  c.fillStyle = rgb(P.landLo); c.fillRect(0, gy + (H - gy) * 0.4, W, H - gy);
+  c.fillStyle = rgb(P.tree);
+  for (let i = 0; i < 26; i++) {
+    const x = (i / 25) * W, hh = H * (0.045 + 0.035 * Math.abs(Math.sin(i * 2.3))), ww = hh * 0.5;
+    c.beginPath(); c.moveTo(x - ww, gy + 2); c.lineTo(x, gy - hh); c.lineTo(x + ww, gy + 2); c.closePath(); c.fill();
+  }
+  const x = W * 0.36, y = gy + H * 0.07, th = Math.min(H * 0.46, W * 0.62), tw = th * 0.46;
+  TV.treeShake *= Math.exp(-4 * dt);
+  const fall = TV.fall || 0, ang = Math.pow(fall, 2.2) * Math.PI * 0.46;
+  c.fillStyle = rgb(P.dark);
+  if (fall > 0) c.fillRect(x - tw * 0.06, y - th * 0.05, tw * 0.12, th * 0.05);
+  c.save(); c.translate(x, y);
+  c.rotate(ang + (TV.treeShake > 0.01 ? TV.treeShake * 0.05 * Math.sin(t * 34) : 0));
+  c.fillRect(-tw * 0.05, -th * 0.12, tw * 0.1, th * 0.12);
+  for (let i = 0; i < 4; i++) {
+    const ty = -th * (0.1 + i * 0.21), w = tw * (1 - i * 0.2), h = th * 0.36;
+    c.beginPath(); c.moveTo(-w / 2, ty); c.lineTo(0, ty - h); c.lineTo(w / 2, ty); c.closePath(); c.fill();
+  }
+  c.restore();
+  if (fall >= 1 && !TV.landed) {
+    TV.landed = true; Snd.thud();
+    emit(rd, x + th * 0.55, y - H * 0.01, reduceMotion ? 4 : 16, ['#5a2a1d', '#3a1a12', '#7a3a28'], { spread: 260, up: -40, upVar: 80, g: 300 });
+  }
+  TV.finalTree = { x, y: y - th * 0.08 };
+  drawGrass(c, W, H, P);
+  drawParticles(rd, c, dt);
+}
+function drawNight(rd) {
+  const c = rd.c, W = rd.W, H = rd.H;
+  c.fillStyle = '#05080b'; c.fillRect(0, 0, W, H);
+  c.fillStyle = '#eef1fb';
+  for (const st of R.stars) { c.globalAlpha = 0.6 * (0.5 + 0.5 * Math.sin(TV.time * st.sp + st.ph)); c.fillRect(st.x * W, st.y * H, st.r, st.r); }
+  c.globalAlpha = 1;
+}
+
+// ---------- state, UI and flow ----------
+const SAVE_KEY = 'vinland-1021-save-v1', SOUND_KEY = 'vinland-1021-muted';
+const SEASON_RUNES = { summer: ['ᛋ', 'ᛋ sól: the sun rune'], autumn: ['ᛅ', 'ᛅ ár: the harvest rune'], winter: ['ᛁ', 'ᛁ íss: the ice rune'], spring: ['ᛒ', 'ᛒ bjarkan: the birch rune'] };
+// A serpent band painted around the runestone, head biting toward its tail.
+const STONE_BAND = '<svg class="stone-band" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true">'
+  + '<path class="sb-edge" d="M44 134 L11 134 Q6.5 134 6.5 129.5 L6.5 30.8 A43.5 25.3 0 0 1 93.5 30.8 L93.5 129.5 Q93.5 134 89 134 L61 134"/>'
+  + '<path class="sb-fill" d="M44 134 L11 134 Q6.5 134 6.5 129.5 L6.5 30.8 A43.5 25.3 0 0 1 93.5 30.8 L93.5 129.5 Q93.5 134 89 134 L61 134"/>'
+  + '<path class="sb-head" d="M62 130.4 C57.6 130 53.6 131.6 50.4 134 C53.6 136.4 57.6 138 62 137.6 C64.2 136.6 64.4 131.4 62 130.4 Z"/>'
+  + '<circle class="sb-eye" cx="58" cy="132.7" r="0.9"/></svg>';
+const RAVEN_LINES = {
+  1: 'Two ravens flew over the camp. Some of the men took it as a sign. Leif took it as two ravens.',
+  2: 'Two ravens flew over the camp. Thorvald said it was a good sign. He said that about most things.',
+  3: 'Two ravens sat on the byre roof and watched the cattle. The cattle watched them back.',
+  4: 'Two ravens circled over the two camps, as if they were waiting for something.',
+};
+const DEV = { speed: 1 };
+let S = newState();
+const els = {
+  seasonName: $('#seasonName'), seasonYear: $('#seasonYear'), seasonRune: $('#seasonRune'), soundBtn: $('#soundBtn'), menuBtn: $('#menuBtn'),
+  stage: $('#stage'), scene: $('#scene'), chips: $('#chips'), hint: $('#hint'), floaters: $('#floaters'),
+  saga: $('#saga'), sagaLine: $('#sagaLine'), tabs: $('#tabs'), panel: $('#panel'),
+  theater: $('#theater'), tcanvas: $('#tcanvas'), tYear: $('#tYear'), tText: $('#tText'), tActions: $('#tActions'), tHint: $('#tHint'), tCard: $('#tCard'),
+  sheet: $('#sheet'), sheetCard: $('#sheetCard'),
+};
+const RES = ['timber', 'food', 'iron', 'grapes', 'furs', 'dairy', 'crew'].reduce((o, k) => { const el = $('#res-' + k); o[k] = { el, b: el.querySelector('b'), i: el.querySelector('i') }; return o; }, {});
+const tabBtn = {}; for (const b of els.tabs.querySelectorAll('button')) tabBtn[b.dataset.tab] = b;
+const UI = { tab: 'work', sig: '', rows: new Map(), fresh: new Map(), sailConfirm: false, queue: [], shownAt: 0, hasLine: false, chipKey: '', paused: true, lastTrip: null, lastSeason: '', eventShown: null };
+const TV = { time: 0, dt: 0, reef: 0, reefTarget: 0, land: 0, landTarget: 0, rescued: false, lapse: 0, dig: 0, digSwing: 0, art: null, mark: 0, markTarget: 0, count: 0, finalRing: 0, treeShake: 0, fade: 0, fadeTarget: 0, chopped: false, fall: 0, falling: false, landed: false };
+let sceneR = null, theaterR = null;
+
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* storage may be unavailable */ } }
+function merge(base, o) {
+  if (!o || typeof o !== 'object') return base;
+  for (const k of Object.keys(o)) {
+    const v = o[k];
+    if (v && typeof v === 'object' && !Array.isArray(v) && base[k] && typeof base[k] === 'object' && !Array.isArray(base[k])) base[k] = merge(base[k], v);
+    else base[k] = v;
+  }
+  return base;
+}
+// Saves from the one-chapter version had unscoped story keys and no "started" flag.
+function migrate(s) {
+  if (!s.v || s.v < 2) {
+    const said = {};
+    for (const k in s.said) said[k.indexOf(':') > 0 ? k : '1:' + k] = 1;
+    s.said = said; s.v = 2;
+    if (s.log && s.log.length) s.started = true;
+  }
+  return s;
+}
+function loadSaved() { try { const j = localStorage.getItem(SAVE_KEY); return j ? migrate(merge(newState(), JSON.parse(j))) : null; } catch (e) { return null; } }
+
+const SVG_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6"/><path d="M18 6.5a8 8 0 0 1 0 11"/></svg>';
+const SVG_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
+function paintSound() {
+  els.soundBtn.innerHTML = Snd.muted ? SVG_OFF : SVG_ON;
+  els.soundBtn.setAttribute('aria-pressed', String(!Snd.muted));
+  els.soundBtn.setAttribute('aria-label', Snd.muted ? 'Sound is off. Turn sound on' : 'Sound is on. Turn sound off');
+}
+
+// ----- panel contents -----
+function jobDesc(s, j) {
+  if (j.id === 'wood') return `+${fmt1(RATE.wood * woodMult(s))} timber/s each.`;
+  if (j.id === 'fish') return `+${fmt1(RATE.fish * fishMult(s))} food/s each. Little to catch in winter.`;
+  if (j.id === 'smith') return `+${fmt1(RATE.iron)} iron/s each. Burns ${RATE.charcoal} timber/s for charcoal.`;
+  if (j.id === 'herd') return `Each herder milks up to 4 cows. In winter, only cows in a byre give milk.`;
+  return `+${fmt1(RATE.grape * grapeMult(s))} grapes/s each in autumn, less in summer, none after.`;
+}
+function tabItems(tab) {
+  const s = S, items = [], c = calOf(s);
+  if (tab === 'work') {
+    const r = rates(s);
+    items.push({ id: 'goals', kind: 'goals' });
+    items.push({ id: 'crew', kind: 'summary', text: `${employedOf(s)} of ${s.crew} people at work, ${idleOf(s)} idle.${s.wounded > 0 ? ` ${s.wounded} wounded.` : ''} They eat ${fmt1(r.eat)} food/s.` });
+    if (s.cattle > 0) items.push({ id: 'herd-sum', kind: 'summary', text: `The herd: ${s.cattle} cows and a bull. ${r.tended} of them are being milked.` });
+    for (const j of JOBS) {
+      if (!j.unlocked(s)) continue;
+      const cost = jobCost(s, j), idle = idleOf(s);
+      items.push({ id: 'job-' + j.id, title: j.name, count: String(s.jobs[j.id] || 0), desc: jobDesc(s, j), btn: 'Hire',
+        cost: idle > 0 ? cost + ' timber' : 'no idle people', on: idle > 0 && s.timber >= cost, act: 'hire', arg: j.id });
+    }
+  } else if (tab === 'build') {
+    const sh = clamp(shelterOf(s), 0, s.crew);
+    items.push({ id: 'shelter', kind: 'summary', text: (sh >= s.crew ? 'Everyone has a roof for the winter.' : `${sh} of ${s.crew} people have a roof for the winter.`)
+      + (s.flags.shared ? ' The brothers’ thirty men share Leif’s houses.' : '') });
+    if (s.halls < hallCap(s)) {
+      const cost = HALL_COSTS[s.halls];
+      items.push({ id: 'hall', title: 'Turf hall', count: `${s.halls} of ${hallCap(s)}`, btn: 'Build', cost: cost + ' timber', on: s.timber >= cost, act: 'hall',
+        desc: s.halls === 2 ? 'A great hall. Everyone works 10% harder.' : `Shelters ${SHELTER_HALL} people through the winter. Its fire burns timber in winter.` });
+    }
+    for (const b of BUILDINGS) if (b.show(s) && !s.built[b.id]) items.push({ id: 'b-' + b.id, title: b.name, desc: b.desc, btn: 'Build', cost: costText(b.cost), on: canPay(s, b.cost), act: 'build', arg: b.id });
+    for (const u of UPGRADES) if (u.show(s) && !s.up[u.id]) items.push({ id: 'u-' + u.id, title: u.name, desc: u.desc, btn: 'Make', cost: costText(u.cost), on: canPay(s, u.cost), act: 'upgrade', arg: u.id });
+    const done = [];
+    if (s.halls) done.push(s.halls === 1 ? '1 turf hall' : s.halls + ' turf halls');
+    for (const b of BUILDINGS) if (s.built[b.id]) done.push(b.name.toLowerCase());
+    for (const u of UPGRADES) if (s.up[u.id]) done.push(u.name.toLowerCase());
+    if (done.length) items.push({ id: 'done', kind: 'done', text: 'Built so far: ' + done.join(', ') + '.' });
+  } else if (tab === 'explore') {
+    const L = tripList(s), T = L[s.trips];
+    if (s.trip) {
+      const name = s.trip.kind === 'search' ? 'Searching for Tyrkir' : (L[s.trip.idx] && L[s.trip.idx].name) || 'The explorers are out';
+      items.push({ id: 'trip', title: name, desc: 'Back in ' + mmss(s.trip.left) + '.', progress: 1 - s.trip.left / s.trip.total });
+    } else if (s.tyrkirMissing) {
+      items.push({ id: 'search', title: 'Tyrkir is missing', desc: 'Leif wants to go and look for him.', btn: 'Search', cost: '', on: true, act: 'explore' });
+    } else {
+      const need = T && T.need ? T.need(s) : '';
+      items.push({ id: 'send-' + Math.min(s.trips, L.length), title: T && T.name ? T.name : 'Send explorers', btn: 'Send', cost: TRIP_FOOD + ' food', on: !need && s.food >= TRIP_FOOD, act: 'explore',
+        desc: need || (T ? (T.desc ? T.desc + ' ' : 'There is more to find. ') + `Gone about ${Math.round(tripTime(s))} seconds.` : 'They might come back with driftwood, berries or more grapes.') });
+    }
+    if (s.ch === 2) {
+      items.push({ id: 'coast-h', kind: 'section', text: 'Along the coast' });
+      for (const f of COAST_FINDS) if ((s.flags.coast || 0) >= f.step) items.push({ id: 'coast-' + f.step, kind: 'disc', title: f.name, desc: f.desc(s) });
+      const left = COAST_FINDS.filter(f => (s.flags.coast || 0) < f.step).length;
+      if (left) items.push({ id: 'coast-left', kind: 'disc', dim: true, title: 'Unexplored', desc: left === 1 ? 'One more place to see.' : `${left} more places to see.` });
+    }
+    if (s.ch === 1) {
+      items.push({ id: 'disc-h', kind: 'section', text: 'Discoveries' });
+      for (const d of DISCOVERIES) if (s.found[d.id]) items.push({ id: 'disc-' + d.id, kind: 'disc', title: d.name, desc: d.desc });
+      const left = DISCOVERIES.filter(d => !s.found[d.id]).length;
+      if (left) items.push({ id: 'disc-left', kind: 'disc', dim: true, title: 'Unexplored', desc: left === 1 ? 'One more thing to find.' : `${left} more things to find.` });
+    } else {
+      const known = DISCOVERIES.filter(d => s.found[d.id]).map(d => d.name.toLowerCase());
+      if (known.length) items.push({ id: 'known', kind: 'done', text: 'Known since Leif’s time: ' + known.join(', ') + '.' });
+    }
+  } else if (tab === 'ship') {
+    const tasks = shipTasks(s), n = tasks.filter(x => s.ship[x.id]).length;
+    if (tasks.length) items.push({ id: 'ship-status', kind: 'summary', text: n === tasks.length ? 'The ship is ready to sail.' : `The ship needs work before the voyage home. Repairs done: ${n} of ${tasks.length}.`, progress: n / tasks.length });
+    else items.push({ id: 'ship-status', kind: 'summary', text: s.ch === 4 ? (s.flags.bigShip ? 'Freydís has the brothers’ ship now. It is bigger.' : 'Freydís’s ship lies by the shore. The brothers’ ship beside it is bigger.') : 'The ship is sound and ready.' });
+    for (const x of tasks) {
+      if (s.ship[x.id]) continue;
+      const need = x.need ? x.need(s) : '';
+      items.push({ id: 'ship-' + x.id, title: x.name, desc: need || x.desc, btn: 'Repair', cost: costText(x.cost), on: !need && canPay(s, x.cost), act: 'ship', arg: x.id });
+    }
+    items.push({ id: 'cargo', kind: 'cargo' });
+    items.push({ id: 'sail', kind: 'sail' });
+  } else if (tab === 'people') {
+    if (s.people.met) {
+      const t = s.people.trust;
+      items.push({ id: 'trust', kind: 'meter', title: 'The people of the land', value: (t + 100) / 200, word: trustWord(t), cls: t <= -30 ? 'bad' : t >= 20 ? 'good' : '',
+        text: t <= -30 ? 'They may attack the camp at night.' : t < 20 ? 'They keep their distance.' : t < 50 ? 'They come and go in peace.' : 'They showed your fishers the best places to fish.' });
+      if (s.flags.tradeOpen && t > -30) {
+        if (s.visit) items.push({ id: 'trade', title: 'Trade dairy for furs', desc: `They give ${furPrice(s)} furs for 20 dairy, and will stay for ${mmss(s.visit.left)}. Each fair trade earns a little trust.`, btn: 'Trade', cost: '20 dairy', on: s.dairy >= 20, act: 'trade' });
+        else items.push({ id: 'trade-wait', kind: 'summary', text: `They will be back to trade in about ${mmss(s.visitT)}.` });
+      }
+      if (t <= -30) items.push({ id: 'raid-note', kind: 'summary', text: s.built.palisade ? 'The palisade keeps most of a raid out.' : 'A palisade, in the Build tab, would keep most of a raid out.' });
+    }
+    if (s.ch === 4) {
+      const f = s.feud;
+      items.push({ id: 'feud', kind: 'meter', title: 'The two camps', value: f / 100, word: feudWord(f), cls: f >= 55 ? 'bad' : f < 30 ? 'good' : '', mark: 0.7,
+        text: s.flags.shipsDone ? (s.flags.massacre ? 'The brothers’ house stands empty.' : 'The two camps will sail home together.')
+          : 'The feud grows by itself, faster in winter. If it is past the red line at the end of winter, this ends the way the saga tells it.' });
+      if (!s.flags.shipsDone) {
+        items.push({ id: 'feast', title: 'Hold a feast for both camps', desc: 'Calms the feud a good deal.', btn: 'Feast', cost: s.cool.feast > 0 ? `ready in ${Math.ceil(s.cool.feast)}s` : '90 food', on: s.cool.feast <= 0 && s.food >= 90, act: 'feast' });
+        items.push({ id: 'help', title: 'Send the brothers firewood', desc: 'Calms the feud a little.', btn: 'Send', cost: s.cool.help > 0 ? `ready in ${Math.ceil(s.cool.help)}s` : '120 timber', on: s.cool.help <= 0 && s.timber >= 120, act: 'help' });
+      }
+    }
+  }
+  return items;
+}
+function rowHTML(i) {
+  if (i.kind === 'goals') return '<div class="goals" data-id="goals"><p class="goals-t"></p><ul class="goal-list"></ul></div>';
+  if (i.kind === 'meter') return `<div class="meter" data-id="${i.id}"><div class="meter-top"><span class="meter-t">${esc(i.title)}</span><b class="meter-w"></b></div><div class="mbar"><i></i>${i.mark != null ? `<span class="mark" style="left:${i.mark * 100}%"></span>` : ''}</div><p class="row-desc"></p></div>`;
+  if (i.kind === 'summary') return `<div class="summary" data-id="${i.id}"><p class="sum-text"></p>${i.progress != null ? '<div class="bar"><i></i></div>' : ''}</div>`;
+  if (i.kind === 'section') return `<h3 class="sec">${esc(i.text)}</h3>`;
+  if (i.kind === 'done') return `<p class="done" data-id="${i.id}"></p>`;
+  if (i.kind === 'disc') return `<div class="disc${i.dim ? ' dim' : ''}" data-id="${i.id}"><span class="disc-t">${esc(i.title)}</span><span class="disc-d"></span></div>`;
+  if (i.kind === 'cargo') return `<div data-id="cargo"><h3 class="sec">If you sailed now</h3><div class="cargo-grid">
+    <div><span class="k">Timber</span><b data-c="timber"></b></div><div><span class="k">Grapes</span><b data-c="grapes"></b></div>
+    <div><span class="k">${S.ch === 1 ? 'Butternuts' : 'Furs'}</span><b data-c="${S.ch === 1 ? 'nuts' : 'furs'}"></b></div><div class="val"><span class="k">Renown</span><b data-c="value"></b></div></div>
+    <p class="row-desc" data-c="hold"></p></div>`;
+  if (i.kind === 'sail') return `<div class="sail" data-id="sail"><p class="row-desc" data-c="note"></p><div class="sail-btns">${UI.sailConfirm
+    ? '<button type="button" class="buy big" data-act="sail-yes"><span class="b-label">Sail for Greenland</span><span class="b-cost">This ends the chapter</span></button><button type="button" class="ghost" data-act="sail-no">Not yet</button>'
+    : '<button type="button" class="buy big" data-act="sail"><span class="b-label">Sail home</span><span class="b-cost"></span></button>'}</div></div>`;
+  return `<div class="row" data-id="${i.id}"><div class="row-main"><div class="row-title"><span>${esc(i.title)}</span>${i.count != null ? '<span class="count"></span>' : ''}<span class="new" hidden>New</span></div><p class="row-desc"></p>${i.progress != null ? '<div class="bar"><i></i></div>' : ''}</div>${i.btn ? `<button type="button" class="buy" data-act="${i.act}" data-arg="${i.arg || ''}"><span class="b-label">${esc(i.btn)}</span><span class="b-cost"></span></button>` : ''}</div>`;
+}
+function buildPanel(items) {
+  els.panel.innerHTML = items.map(rowHTML).join('');
+  UI.rows.clear();
+  const now = performance.now();
+  for (const el of els.panel.querySelectorAll('[data-id]')) {
+    const id = el.dataset.id;
+    UI.rows.set(id, { el, count: el.querySelector('.count'), desc: el.querySelector('.row-desc, .disc-d'), sum: el.querySelector('.sum-text'),
+      btn: el.querySelector('button[data-act]'), cost: el.querySelector('.b-cost'), bar: el.querySelector('.bar i'), nw: el.querySelector('.new'), key: '' });
+  }
+  for (const i of items) {
+    if (i.kind || !i.btn) continue;
+    if (!S.seen[i.id]) { S.seen[i.id] = 1; UI.fresh.set(i.id, now + 8000); }
+  }
+}
+function fillPanel(items) {
+  const now = performance.now();
+  for (const i of items) {
+    const r = UI.rows.get(i.id);
+    if (!r) continue;
+    if (i.kind === 'goals') {
+      const C = chap(S), G = GOALS[S.ch] || [];
+      setText(r.el.querySelector('.goals-t'), `${C.title} ᛫ Chapter ${C.numeral}`);
+      const key = G.map(g => (g.done(S) ? 1 : 0)).join('');
+      if (key !== r.key) { r.key = key; r.el.querySelector('.goal-list').innerHTML = G.map(g => `<li${g.done(S) ? ' class="ok"' : ''}>${esc(g.text)}</li>`).join(''); }
+      continue;
+    }
+    if (i.kind === 'meter') {
+      const cls = 'meter' + (i.cls ? ' ' + i.cls : '');
+      if (r.el.className !== cls) r.el.className = cls;
+      setText(r.el.querySelector('.meter-w'), i.word);
+      r.el.querySelector('.mbar i').style.width = (clamp(i.value, 0, 1) * 100).toFixed(1) + '%';
+      setText(r.desc, i.text);
+      continue;
+    }
+    if (i.kind === 'summary') { setText(r.sum, i.text); if (r.bar) r.bar.style.width = (i.progress * 100).toFixed(1) + '%'; continue; }
+    if (i.kind === 'done') { setText(r.el, i.text); continue; }
+    if (i.kind === 'disc') { setText(r.desc, i.desc); continue; }
+    if (i.kind === 'cargo') {
+      const cg = cargo(S);
+      for (const k of ['timber', 'grapes', 'nuts', 'furs', 'value']) { const el = r.el.querySelector(`[data-c="${k}"]`); if (el) setText(el, fmt(cg[k])); }
+      setText(r.el.querySelector('[data-c="hold"]'), `The hold takes ${cg.room} loads. ${cg.used} filled. Timber is worth 1 renown, grapes 5, furs 8, butternuts 15.`);
+      continue;
+    }
+    if (i.kind === 'sail') {
+      const blk = sailBlock(S);
+      const note = blk === '' ? 'Sailing ends this chapter. You can keep working first to fill the hold.'
+        : blk === 'season' ? `The sea is too rough until spring, in ${mmss(timeToSpring(S))}.` : blk === 'busy' ? '' : blk;
+      setText(r.el.querySelector('[data-c="note"]'), note);
+      const b = r.el.querySelector('button[data-act="sail"]');
+      if (b) b.classList.toggle('off', !!blk);
+      continue;
+    }
+    if (r.count) setText(r.count, i.count);
+    setText(r.desc, i.desc || '');
+    if (r.cost) setText(r.cost, i.cost || '');
+    if (r.btn) { r.btn.classList.toggle('off', !i.on); r.btn.setAttribute('aria-disabled', String(!i.on)); }
+    if (r.bar) r.bar.style.width = (clamp(i.progress, 0, 1) * 100).toFixed(1) + '%';
+    if (r.nw) r.nw.hidden = !((UI.fresh.get(i.id) || 0) > now);
+  }
+}
+function renderPanel() {
+  const items = tabItems(UI.tab);
+  const sig = UI.tab + S.ch + (UI.sailConfirm ? '!' : '') + '#' + items.map(i => i.id + ':' + (i.kind || 'row')).join('|');
+  if (sig !== UI.sig) { UI.sig = sig; buildPanel(items); }
+  fillPanel(items);
+}
+function updateTabs() {
+  const vis = { work: true, build: true, explore: exploreOpen(S), ship: S.built.shed || S.ch > 1, people: S.people.met || S.ch === 4 };
+  if (!vis[UI.tab]) UI.tab = 'work';
+  for (const t in tabBtn) {
+    const b = tabBtn[t];
+    b.hidden = !vis[t];
+    const on = UI.tab === t;
+    b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on));
+    b.classList.toggle('badge', vis[t] && !on && tabItems(t).some(i => !i.kind && i.btn && !S.seen[i.id]));
+  }
+}
+function updateHeader() {
+  const s = S, c = calOf(s), r = rates(s);
+  setText(els.seasonName, c.season.name);
+  const sr = SEASON_RUNES[c.season.id];
+  setText(els.seasonRune, sr[0]);
+  if (els.seasonRune.title !== sr[1]) els.seasonRune.title = sr[1];
+  setText(els.seasonYear, 'Year ' + c.year);
+  const set = (k, v, rate, show) => {
+    const o = RES[k]; o.el.hidden = show === false;
+    setText(o.b, fmt(v));
+    if (o.i) { setText(o.i, rate == null ? '' : fmtRate(rate)); o.i.classList.toggle('neg', rate < 0); }
+  };
+  set('timber', s.timber, r.timberNet);
+  set('food', s.food, r.foodNet);
+  set('iron', s.iron, r.ironIn, s.found.iron || s.iron > 0);
+  set('grapes', s.grapes, r.grapeIn, s.found.grapes);
+  set('furs', s.furs, null, s.furs > 0 || s.ch === 3);
+  set('dairy', s.dairy, r.dairyIn, s.cattle > 0);
+  set('crew', idleOf(s), null);
+}
+function updateChips() {
+  const s = S, c = calOf(s), list = [];
+  if (s.hungry) list.push(['warn', 'Hungry']);
+  if (s.cold) list.push(['warn', 'Fires out']);
+  if (s.wounded > 0) list.push(['warn', `${s.wounded} wounded`]);
+  if (c.season.winter && shelterOf(s) < s.crew) list.push(['frost', `${s.crew - Math.max(0, shelterOf(s))} without a roof`]);
+  if (s.people.met && s.people.trust <= -30) list.push(['warn', 'Hostile neighbours']);
+  if (s.visit) list.push(['good', `Traders here ${mmss(s.visit.left)}`]);
+  if (s.ch === 4 && !s.flags.shipsDone) list.push([s.feud >= 55 ? 'warn' : '', `Feud: ${feudWord(s.feud).toLowerCase()}`]);
+  if (s.trip) list.push(['', (s.trip.kind === 'search' ? 'Searching ' : 'Explorers out ') + mmss(s.trip.left)]);
+  list.push(['clock', `${c.next.name} in ${mmss(c.left)}`]);
+  const key = list.map(x => x.join(':')).join('|');
+  if (key !== UI.chipKey) { UI.chipKey = key; els.chips.innerHTML = list.map(([k, t]) => `<span class="chip ${k}">${esc(t)}</span>`).join(''); }
+  setText(els.hint, hintText());
+}
+function hintText() {
+  const s = S, c = calOf(s);
+  if (s.pending || UI.eventShown) return '';
+  if (s.jobs.fish === 0) return 'Hire a fisher so everyone can eat';
+  if (s.ch === 1) {
+    if (s.jobs.wood < 4) return 'Hire more woodcutters in the Work tab';
+    if (s.halls === 0) return s.timber >= HALL_COSTS[0] ? 'Build a turf hall in the Build tab' : `Save ${HALL_COSTS[0]} timber for a turf hall`;
+    if (!s.trips && !s.trip) return 'Send explorers from the Explore tab';
+    if (!s.built.shed && s.t - s.t0 > 200) return 'Build a boat shed to start on the ship';
+  }
+  if (s.ch === 2) {
+    const L = tripList(s), T = L[s.trips];
+    if (s.flags.keelBroken && !s.ship.keel) return 'The keel is broken. Fix it in the Ship tab';
+    if (!s.trip && T && UI.tab !== 'explore') return 'Thorvald wants to explore. See the Explore tab';
+  }
+  if (s.ch === 3) {
+    if (s.cattle > 0 && s.jobs.herd === 0) return 'Hire herders to milk the cows';
+    if (!s.built.byre && c.season.id !== 'spring') return 'Build a byre before the winter';
+    if (s.visit && s.dairy >= 20 && UI.tab !== 'people') return 'Traders are here. See the People tab';
+  }
+  if (s.ch === 4 && !s.flags.shipsDone && s.feud >= 50 && UI.tab !== 'people') return 'The feud is growing. See the People tab';
+  if (s.people.met && s.people.trust <= -30 && !s.built.palisade) return 'Build a palisade against raids';
+  if (c.season.id === 'autumn' && shelterOf(s) < s.crew) return 'Winter is coming. Build halls for everyone';
+  if (s.hungry) return 'Hire more fishers';
+  if (s.cold) return 'Hire more woodcutters for the fires';
+  if (!sailBlock(s) && UI.tab !== 'ship') return 'You can sail home now. See the Ship tab';
+  return '';
+}
+function pumpSaga(now) {
+  while (OUT.length) UI.queue.push(OUT.shift());
+  const wait = UI.queue.length > 2 ? 1700 : 3300;
+  if (UI.queue.length && (!UI.hasLine || now - UI.shownAt > wait)) {
+    const e = UI.queue.shift();
+    const p = els.sagaLine;
+    p.textContent = e.text; p.classList.remove('in'); void p.offsetWidth; p.classList.add('in');
+    UI.shownAt = now; UI.hasLine = true;
+    if (e.tone === 'event') Snd.event();
+  }
+}
+function floater(x, y, text) {
+  if (els.floaters.childElementCount > 24) els.floaters.firstElementChild.remove();
+  const d = document.createElement('div');
+  d.className = 'floater'; d.textContent = text;
+  d.style.left = x + 'px'; d.style.top = y + 'px';
+  d.addEventListener('animationend', () => d.remove());
+  els.floaters.appendChild(d);
+  if (reduceMotion) setTimeout(() => d.remove(), 700);
+}
+// The men chop on their own. Every few seconds a tree near them shakes and the timber they cut floats up.
+const WB = { acc: 0, next: 2.5 };
+function workerBeat(dt) {
+  WB.acc += dt;
+  if (WB.acc < WB.next) return;
+  const span = WB.acc;
+  WB.acc = 0; WB.next = 2.2 + Math.random() * 1.6;
+  const cut = rates(S).timberIn * span;
+  if (S.jobs.wood < 1 || cut < 0.5) return;
+  const near = R.front.filter(t => !t.stump && t.x < 0.84);
+  const tr = near[Math.floor(Math.random() * near.length)];
+  if (!tr) return;
+  tr.shake = 0.6;
+  const x = tr.x * sceneR.W;
+  emit(sceneR, x, (tr.base - tr.h * 0.15) * sceneR.H, reduceMotion ? 2 : 5, CHIP_COLORS);
+  floater(x, (tr.base - tr.h * 1.08) * sceneR.H, '+' + Math.round(cut));
+  Snd.work();
+}
+function doAction(btn) {
+  Snd.init();
+  const a = btn.dataset.act, arg = btn.dataset.arg;
+  if (a === 'sail') { if (btn.classList.contains('off')) return shake(btn); UI.sailConfirm = true; renderPanel(); return; }
+  if (a === 'sail-no') { UI.sailConfirm = false; renderPanel(); return; }
+  if (a === 'sail-yes') { UI.sailConfirm = false; startVoyage(); return; }
+  if (btn.classList.contains('off')) return shake(btn);
+  if (act(S, a, arg)) { Snd.buy(); renderPanel(); updateHeader(); updateTabs(); save(); }
+  else shake(btn);
+}
+function shake(btn) { btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake'); }
+
+// ----- sheet: menu, help, saga log, and the saga's choices -----
+function openSheet(kind) {
+  const card = els.sheetCard;
+  delete els.sheet.dataset.mode;
+  if (kind === 'menu') {
+    card.setAttribute('aria-label', 'Menu');
+    card.innerHTML = '<h2>Menu</h2><div class="menu-list"><button type="button" data-m="log">The saga so far</button><button type="button" data-m="help">How to play</button><button type="button" data-m="restart">Start a new saga</button><button type="button" data-m="close">Back to the camp</button></div>';
+  } else if (kind === 'log') {
+    card.setAttribute('aria-label', 'The saga so far');
+    let lastCh = 0;
+    const items = S.log.map(e => {
+      const head = e.ch && e.ch !== lastCh ? `<li class="log-ch">${esc(CHAPTERS[e.ch].title)}</li>` : '';
+      lastCh = e.ch || lastCh;
+      return `${head}<li><span class="when">${esc(e.when)}</span>${esc(e.text)}</li>`;
+    }).join('');
+    card.innerHTML = `<h2>The saga so far</h2><ol class="log">${items || '<li>Nothing has happened yet.</li>'}</ol><div class="sheet-btns"><button type="button" data-m="close">Close</button></div>`;
+  } else if (kind === 'help') {
+    card.setAttribute('aria-label', 'How to play');
+    card.innerHTML = `<h2>How to play</h2><ul class="help">
+      <li>Your people do the work. Give them jobs in the Work tab: woodcutters cut the timber that pays for almost everything, and fishers keep everyone fed.</li>
+      <li>The seasons turn on their own. Before winter, build turf halls so everyone has a roof, and put away food and firewood.</li>
+      <li>Each chapter is one voyage from the Saga of the Greenlanders, with its own goals at the top of the Work tab.</li>
+      <li>Some moments ask you to choose. If you choose differently from the saga, the narrator tells you what the saga says happened.</li>
+      <li>Sail home in spring or summer. What you carry home, and how you behaved, becomes your renown. It carries over to the next voyage.</li>
+      <li>The game pauses when you leave the page, and saves in this browser.</li></ul>
+      <div class="sheet-btns"><button type="button" data-m="close">Back to the camp</button></div>`;
+  } else if (kind === 'restart') {
+    card.setAttribute('aria-label', 'Start a new saga');
+    card.innerHTML = '<h2>Start a new saga?</h2><p>This erases all four chapters and starts again on the beach with Leif.</p><div class="sheet-btns"><button type="button" class="danger" data-m="restart-yes">Erase and restart</button><button type="button" data-m="close">Keep playing</button></div>';
+  }
+  els.sheet.hidden = false;
+  if (kind === 'log') card.scrollTop = card.scrollHeight;
+  const first = card.querySelector('button'); if (first) first.focus({ preventScroll: true });
+}
+function closeSheet() { if (els.sheet.dataset.mode === 'event') return; els.sheet.hidden = true; }
+const isSagaNote = t => /^That is not how the saga tells it|^In the saga/.test(t);
+function showEvent() {
+  const ev = EVENTS[S.pending];
+  if (!ev) return;
+  UI.eventShown = S.pending;
+  const card = els.sheetCard;
+  card.setAttribute('aria-label', ev.title);
+  card.innerHTML = `<p class="eyebrow">${esc(chap(S).title)}</p><h2>${esc(ev.title)}</h2><div class="ev-body">${ev.text.map(t => `<p>${esc(t)}</p>`).join('')}</div>
+    <div class="ev-choices">${ev.choices.map((ch, k) => `<button type="button" class="tbtn${k === 0 ? ' primary' : ''}" data-ev="${ch.id}">${esc(ch.label)}</button>`).join('')}</div>`;
+  els.sheet.dataset.mode = 'event'; els.sheet.hidden = false;
+  Snd.event();
+  const b = card.querySelector('button'); if (b) b.focus({ preventScroll: true });
+}
+function chooseEvent(id) {
+  const ev = EVENTS[S.pending];
+  if (!ev) return;
+  const out = resolveEvent(S, id); save();
+  els.sheetCard.innerHTML = `<p class="eyebrow">${esc(chap(S).title)}</p><h2>${esc(ev.title)}</h2><div class="ev-body">${out.map(t => `<p${isSagaNote(t) ? ' class="saga-note"' : ''}>${esc(t)}</p>`).join('')}</div>
+    <div class="ev-choices"><button type="button" class="tbtn primary" data-ev="done">Continue</button></div>`;
+  UI.eventShown = 'result';
+  if (out.length) { UI.queue.length = 0; els.sagaLine.textContent = out[0]; UI.hasLine = true; UI.shownAt = performance.now(); }
+  const b = els.sheetCard.querySelector('button'); if (b) b.focus({ preventScroll: true });
+}
+function closeEvent() { delete els.sheet.dataset.mode; els.sheet.hidden = true; UI.eventShown = null; UI.sig = ''; renderPanel(); updateTabs(); }
+
+// ----- the theater: title, chapter cards, voyages, epilogue -----
+const Theater = {
+  scene: null, beats: [], i: -1, bt: 0,
+  open(scene) { els.theater.hidden = false; this.scene = scene; theaterR.fit(); },
+  close() { els.theater.hidden = true; this.scene = null; this.beats = []; this.i = -1; els.tCard.hidden = true; },
+  run(beats) { this.beats = beats; this.i = -1; this.next(); },
+  next() {
+    this.i++; this.bt = 0;
+    const b = this.beats[this.i];
+    if (!b) return;
+    if (b.scene) this.scene = b.scene;
+    if (b.year !== undefined) setText(els.tYear, b.year);
+    if (b.text !== undefined) setTheaterText(b.text, b.mine);
+    renderActions(b.actions || []);
+    setText(els.tHint, b.hint !== undefined ? b.hint : (b.tap === false || b.auto ? '' : 'Tap to continue'));
+    if (b.start) b.start();
+  },
+  update(dt) {
+    const b = this.beats[this.i];
+    if (!b) return;
+    this.bt += dt;
+    if (b.update) b.update(dt, this.bt);
+    if (b.auto && this.bt >= b.auto && this.beats[this.i] === b) this.next();
+  },
+  tap() {
+    const b = this.beats[this.i];
+    if (!b) return;
+    if (b.onTap) { b.onTap(); return; }
+    if (b.tap === false) return;
+    if (this.bt > 0.35) this.next();
+  },
+};
+function setTheaterText(text, mine) {
+  const el = els.tText;
+  el.innerHTML = esc(text) + (mine ? `<span class="mine">${esc(mine)}</span>` : '');
+  el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
+}
+function renderActions(list) {
+  els.tActions.innerHTML = '';
+  for (const a of list) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tbtn' + (a.primary ? ' primary' : ''); b.textContent = a.label;
+    b.addEventListener('click', () => { Snd.init(); a.fn(); });
+    els.tActions.appendChild(b);
+  }
+}
+function showCard(html, cls) { els.tCard.className = 't-card' + (cls ? ' ' + cls : ''); els.tCard.innerHTML = html; els.tCard.hidden = false; const b = els.tCard.querySelector('button'); if (b) b.focus({ preventScroll: true }); }
+function clearStage() { setText(els.tYear, ''); setTheaterText(''); renderActions([]); setText(els.tHint, ''); }
+
+function showTitle() {
+  UI.paused = true;
+  Theater.open('title'); Theater.beats = []; clearStage();
+  const hasSave = S.ch > 1 || S.t > S.t0 + 0.5;
+  showCard(`<div class="poster-inner"><div class="poster-top"><div class="plait ink" aria-hidden="true"></div><div class="title-num">1021</div><div class="runes" aria-hidden="true">ᚢᛁᚾᛚᛅᚾᛏ</div><div class="plait ink" aria-hidden="true"></div>
+    <p class="title-sub">A small saga of Vinland</p></div>
+    <div class="poster-bottom"><div class="t-btns">${hasSave ? '<button type="button" class="tbtn primary" data-t="continue">Continue</button><button type="button" class="tbtn" data-t="new">New saga</button>' : '<button type="button" class="tbtn primary" data-t="begin">Go ashore</button>'}</div>
+    <p class="title-note">${hasSave ? `You are in chapter ${chap(S).numeral}: ${esc(chap(S).title.replace('The saga of ', ''))}.` : 'Four voyages from the sagas. Best with sound on.'}</p></div></div>`, 'poster');
+}
+function showChapterCard() {
+  UI.paused = true;
+  const C = chap(S);
+  Theater.open('chapter'); Theater.beats = []; clearStage();
+  showCard(`<div class="poster-inner"><div class="poster-top"><div class="plait ink" aria-hidden="true"></div>
+    <p class="chapter-num">Chapter ${C.numeral}</p><div class="title-name">${esc(C.leader)}</div><div class="runes" aria-hidden="true">${C.runes}</div>
+    <div class="plait ink" aria-hidden="true"></div><p class="title-sub">${esc(C.blurb)}</p></div>
+    <div class="poster-bottom"><div class="t-btns"><button type="button" class="tbtn primary" data-t="begin">Go ashore</button></div>
+    <p class="title-note">Your saga so far: ${S.renownTotal} renown. It bought this crew better supplies.</p></div></div>`, 'poster');
+}
+function beginCamp() {
+  Theater.close();
+  UI.paused = false;
+  Snd.init();
+  if (!S.started) { S.started = true; (INTRO[S.ch] || []).forEach((l, k) => say(S, l, k === 0 ? 'event' : '')); }
+  sceneR.fit(); UI.sig = ''; renderPanel(); updateTabs();
+}
+function listText(parts) {
+  parts = parts.filter(Boolean);
+  if (parts.length <= 1) return parts[0] || 'what they had';
+  return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+}
+function startVoyage() {
+  if (!sail(S)) return;
+  save();
+  const cg = S.voyage.cargo, f = S.flags;
+  Object.assign(TV, { reef: 0, reefTarget: 0, land: 0, landTarget: 0, rescued: false });
+  Theater.open('voyage'); clearStage(); els.tCard.hidden = true;
+  Snd.horn();
+  const cargoText = listText([cg.timber && `${cg.timber} loads of timber`, cg.grapes && `${cg.grapes} baskets of grapes`, cg.furs && `${cg.furs} bundles of furs`, cg.nuts && 'a sack of butternuts']);
+  if (S.ch === 1) {
+    Theater.run([
+      { scene: 'voyage', text: `They loaded the ship with ${cargoText}, and sailed for Greenland.`, auto: 5 },
+      { text: 'They had a fair wind most of the way.', auto: 4 },
+      { text: 'Then Leif began to steer closer to the wind. His men asked him why.', auto: 4.5 },
+      { text: '“Do you see anything?” said Leif. They said they did not.', auto: 4.5, start: () => { TV.reefTarget = 0.45; } },
+      { text: '“I cannot tell if that is a ship or a reef,” said Leif.', auto: 4.5, start: () => { TV.reefTarget = 1; } },
+      { text: 'It was a reef. There were people on it. Their ship had been wrecked.', tap: false,
+        actions: [{ label: 'Steer for the reef', primary: true, fn: () => rescue(true) }, { label: 'Sail on', fn: () => rescue(false) }] },
+    ]);
+    return;
+  }
+  const beats = [];
+  if (S.ch === 2) {
+    beats.push({ scene: 'voyage', text: `In the spring, ${f.thorvaldDead ? 'Thorvald’s men' : 'Thorvald'} loaded the ship with ${cargoText}, and sailed for Greenland.`, auto: 5 });
+    beats.push({ text: f.thorvaldDead ? 'They had hard news for Leif. His brother was dead, and buried at Krossanes.' : 'Thorvald had a great deal to tell Leif, and told most of it twice.', auto: 5.5 });
+  } else if (S.ch === 3) {
+    beats.push({ scene: 'voyage', text: `Karlsefni and Gudrid loaded the ship with ${cargoText}, and sailed for Greenland.`, auto: 5 });
+    beats.push({ text: 'Snorri, born in Vinland, went with them.', auto: 4.5 });
+    beats.push({ text: 'Years later, Gudrid went on a pilgrimage to Rome, and came home again to Iceland.', auto: 5.5 });
+  } else {
+    if (f.massacre) {
+      beats.push({ scene: 'voyage', text: `Freydís sailed home in the brothers’ ship, with ${cargoText}.`, auto: 5 });
+      beats.push({ text: 'Leif found out anyway. He said he could not bring himself to punish his sister, but that her descendants would never prosper.', auto: 6.5 });
+    } else {
+      beats.push({ scene: 'voyage', text: `The two ships sailed home together, with ${cargoText}. The profits were shared, as agreed.`, auto: 5.5 });
+      beats.push({ text: 'Helgi and Finnbogi went home to Iceland. In this telling, they grew old.', auto: 5 });
+    }
+  }
+  beats.push({ text: 'They came home to Eriksfjord in Greenland.', auto: 4, start: () => { TV.landTarget = 1; } });
+  beats.push({ tap: false, start: () => showSummary() });
+  Theater.run(beats);
+}
+function rescue(yes) {
+  decideRescue(S, yes); save();
+  const beats = yes ? [
+    { text: 'Leif took all fifteen of them aboard, and as much of their cargo as the ship could carry.', auto: 5, start: () => { TV.rescued = true; Snd.event(); } },
+    { text: 'One of them was a woman named Gudrid. Vinland had not seen the last of her.', auto: 5 },
+    { text: 'From then on, people called him Leif the Lucky.', auto: 4.5, start: () => { TV.reefTarget = 0; } },
+  ] : [
+    { text: 'Leif sailed on. Nobody called him lucky after that.', auto: 4.5, start: () => { TV.reefTarget = 0; } },
+  ];
+  beats.push({ text: 'They came home to Eriksfjord in Greenland.', auto: 4.5, start: () => { TV.landTarget = 1; } });
+  beats.push({ tap: false, start: () => showSummary() });
+  Theater.run(beats);
+}
+function showSummary() {
+  finishChapter(S); save();
+  if (!Theater.scene) Theater.open('voyage');
+  TV.landTarget = 1; TV.reefTarget = 0;
+  clearStage();
+  const C = chap(S), v = S.voyage, cg = v.cargo, total = renown(S), f = S.flags;
+  const head = { 1: v.rescued ? 'Leif the Lucky came home' : 'Leif came home', 2: f.thorvaldDead ? 'Thorvald stayed in Vinland' : 'Thorvald came home',
+    3: 'Karlsefni and Gudrid came home', 4: f.massacre ? 'Freydís came home' : 'Both ships came home' }[S.ch];
+  const goods = [['Timber', cg.timber, VALUE.timber], ['Grapes', cg.grapes, VALUE.grapes], ['Furs', cg.furs, VALUE.furs], ['Butternuts', cg.nuts, VALUE.nuts]]
+    .filter(g => g[1] > 0 || g[0] === 'Timber');
+  const rows = goods.map(([n, q, k]) => `<div><dt>${n} (${q} × ${k})</dt><dd>${q * k}</dd></div>`).join('')
+    + S.bonuses.filter(b => b.value).map(b => `<div><dt>${esc(b.label)}</dt><dd>${b.value > 0 ? '' : '−'}${Math.abs(b.value)}</dd></div>`).join('');
+  const last = S.ch >= LAST_CHAPTER, next = CHAPTERS[S.ch + 1];
+  const nextBtn = last ? '<button type="button" class="tbtn primary" data-t="epilogue">Read the epilogue</button>'
+    : `<button type="button" class="tbtn primary" data-t="next">Chapter ${next.numeral}: ${esc(next.leader)}</button>`;
+  showCard(`<div class="stone-wrap"><div class="stone">${STONE_BAND}<div class="stone-inner">
+    <div class="stone-runes" aria-hidden="true">${C.runes} ᛫ ᚢᛁᚾᛚᛅᚾᛏ</div>
+    <p class="eyebrow">${esc(C.title)} ᛫ Chapter ${C.numeral}</p>
+    <h2>${head}</h2>
+    <dl class="tally"><div><dt>Seasons in Vinland</dt><dd>${v.seasons}</dd></div>${rows}<div class="total"><dt>Renown</dt><dd>${total}</dd></div></dl></div></div>
+    <p class="note">${last ? `Your whole saga: ${S.renownTotal} renown, over four voyages.` : `Your saga so far: ${S.renownTotal} renown. It carries over, and buys the next crew better supplies.`}</p>
+    <div class="t-btns">${nextBtn}<button type="button" class="tbtn" data-t="again">Start a new saga</button></div>
+  </div>`);
+}
+function nextChapter() {
+  if (S.ch >= LAST_CHAPTER) return;
+  S = chapterState(S.ch + 1, S); save();
+  UI.queue.length = 0; OUT.length = 0; UI.sig = ''; UI.tab = 'work'; UI.sailConfirm = false; UI.lastSeason = '';
+  sceneR.chips = []; sceneR.smoke = [];
+  showChapterCard();
+}
+const LAPSE_LINES = [[1060, 'The roofs fell in.'], [1230, 'In Iceland, people wrote the sagas down.'], [1380, 'Other people camped by the shore, as they had long before the Norse came.'], [1520, 'The walls sank into the grass.'], [1720, 'Nobody knew for sure where Vinland had been.']];
+const DIG = { taps: 0, found: 0, showing: null };
+function startEpilogue() {
+  S.phase = 'epilogue'; save();
+  els.tCard.hidden = true; clearStage();
+  Object.assign(TV, { lapse: 0, dig: 0, digSwing: 0, art: null, mark: 0, markTarget: 0, count: 0, finalRing: 0, treeShake: 0, fade: 0, fadeTarget: 0, chopped: false, fall: 0, falling: false, landed: false });
+  Theater.open('empty');
+  let lastLine = '';
+  Theater.run([
+    { scene: 'empty', text: 'Leif. Thorvald. Gudrid and Karlsefni, and their son Snorri. Freydís.' },
+    { text: 'After them, the sagas tell of no more voyages to Vinland.' },
+    { text: 'The houses stood empty.' },
+    { scene: 'lapse', text: '', tap: false, auto: 16.5, update: (dt, bt) => {
+      const k = clamp(bt / 15, 0, 1), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      TV.lapse = k;
+      const yr = Math.round(1025 + e * (1960 - 1025));
+      setText(els.tYear, String(yr));
+      let line = '';
+      for (const l of LAPSE_LINES) if (yr >= l[0]) line = l[1];
+      if (line !== lastLine) { lastLine = line; setTheaterText(line); }
+    } },
+    { scene: 'dig', year: '1960', text: 'A man from the village of L’Anse aux Meadows, George Decker, showed two visitors some grassy bumps near the shore.' },
+    { text: 'Helge Ingstad was an explorer. Anne Stine Ingstad was an archaeologist. They began to dig.' },
+    { year: '1961–1968', text: '', hint: 'Tap to dig', start: () => { DIG.taps = 0; DIG.found = 0; DIG.showing = null; }, onTap: digTap },
+    { text: 'The bumps were the walls of eight Norse buildings. The sagas had been telling the truth, more or less.' },
+    { year: '1978', text: 'In 1978 the site became one of the first places on the UNESCO World Heritage List.' },
+    { scene: 'rings', year: '2021', text: 'Scientists studied pieces of wood from the site that had been cut with metal blades.' },
+    { text: 'In the year 993, a storm of particles from the sun hit the Earth. It left a faint mark in that year’s ring of trees all over the world.', start: () => { TV.markTarget = 1; } },
+    { text: 'They found the ring from 993, and counted outward to the bark.', tap: false, auto: 7, update: (dt, bt) => { TV.count = clamp((bt - 0.8) / 5.4, 0, 1); } },
+    { text: 'The trees were cut down in 1021.', start: () => { TV.count = 1; TV.finalRing = 1; Snd.event(); } },
+    { scene: 'final', year: '', text: 'One thousand years before the scientists, someone stood in a clearing here and swung an axe.' },
+    { text: 'Tap.', hint: '', onTap: finalChop },
+  ]);
+}
+function digTap() {
+  if (DIG.showing) {
+    DIG.showing = null; TV.art = null;
+    if (DIG.found >= ARTIFACTS.length) { Theater.next(); return; }
+    setTheaterText(''); setText(els.tHint, 'Tap to dig');
+    return;
+  }
+  DIG.taps++;
+  Snd.init(); Snd.dig();
+  TV.dig = clamp(TV.dig + 0.04, 0, 1); TV.digSwing = 1;
+  const band = Math.min(theaterR.H, theaterR.W / 1.3), oy = Math.round((theaterR.H - band) * 0.4);
+  emit(theaterR, theaterR.W * 0.2, oy + band * 0.77, reduceMotion ? 3 : 6, SOIL_COLORS, { spread: 120, up: -50, upVar: 90 });
+  if (DIG.taps % 5 === 0) {
+    const a = ARTIFACTS[DIG.found++];
+    DIG.showing = a; TV.art = { kind: a.kind, t: 0 };
+    Snd.event();
+    setTheaterText(a.text, a.mine(S));
+    setText(els.tHint, 'Tap to continue');
+  }
+}
+function finalChop() {
+  if (TV.chopped) return;
+  TV.chopped = true;
+  Snd.init(); Snd.chop();
+  TV.treeShake = 1;
+  if (TV.finalTree) emit(theaterR, TV.finalTree.x, TV.finalTree.y, reduceMotion ? 4 : 12, CHIP_COLORS, { spread: 220 });
+  setTheaterText(''); setText(els.tHint, '');
+  setTimeout(() => { TV.falling = true; }, 650);
+  setTimeout(showEnd, 3300);
+}
+function showEnd() {
+  S.phase = 'done'; save();
+  Theater.scene = 'end'; clearStage();
+  showCard(`<div class="poster-inner"><div class="poster-top"><div class="plait ink" aria-hidden="true"></div><div class="title-num">1021</div><div class="runes" aria-hidden="true">ᚢᛁᚾᛚᛅᚾᛏ</div><div class="plait ink" aria-hidden="true"></div>
+    <p class="title-sub">A small saga of Vinland</p></div>
+    <div class="poster-bottom"><p class="title-note">Your saga: ${S.renownTotal} renown, over four voyages. Thanks for playing.</p>
+    <div class="t-btns"><button type="button" class="tbtn primary" data-t="again">Play again</button></div></div></div>`, 'poster');
+}
+function newSaga() {
+  S = newState(); save();
+  UI.queue.length = 0; OUT.length = 0; UI.hasLine = false; UI.sig = ''; UI.tab = 'work'; UI.sailConfirm = false; UI.lastSeason = '';
+  setText(els.sagaLine, '');
+  sceneR.chips = []; sceneR.smoke = [];
+  for (const tr of R.trees) tr.shake = 0;
+}
+
+// ----- events -----
+els.scene.addEventListener('contextmenu', e => e.preventDefault());
+els.panel.addEventListener('click', e => { const b = e.target.closest('button[data-act]'); if (b) doAction(b); });
+els.tabs.addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]');
+  if (!b) return;
+  UI.tab = b.dataset.tab; UI.sailConfirm = false;
+  renderPanel(); updateTabs(); els.panel.scrollTop = 0;
+});
+els.saga.addEventListener('click', () => openSheet('log'));
+els.saga.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSheet('log'); } });
+els.menuBtn.addEventListener('click', () => { if (!UI.eventShown) openSheet('menu'); });
+els.soundBtn.addEventListener('click', () => {
+  Snd.init(); Snd.setMuted(!Snd.muted); paintSound();
+  try { localStorage.setItem(SOUND_KEY, Snd.muted ? '1' : '0'); } catch (e) { /* ignore */ }
+});
+els.sheet.addEventListener('click', e => {
+  if (els.sheet.dataset.mode === 'event') {
+    const b = e.target.closest('button[data-ev]');
+    if (!b) return;
+    Snd.init();
+    if (b.dataset.ev === 'done') closeEvent(); else chooseEvent(b.dataset.ev);
+    return;
+  }
+  if (e.target === els.sheet) return closeSheet();
+  const b = e.target.closest('button[data-m]');
+  if (!b) return;
+  const m = b.dataset.m;
+  if (m === 'close') closeSheet();
+  else if (m === 'restart-yes') { closeSheet(); newSaga(); showTitle(); }
+  else openSheet(m);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !els.sheet.hidden) closeSheet(); });
+els.theater.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; Theater.tap(); });
+els.theater.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.target.closest('button')) { e.preventDefault(); Theater.tap(); } });
+els.theater.tabIndex = -1;
+els.tCard.addEventListener('click', e => {
+  const b = e.target.closest('button[data-t]');
+  if (!b) return;
+  Snd.init();
+  const t = b.dataset.t;
+  if (t === 'begin' || t === 'continue') beginCamp();
+  else if (t === 'new') {
+    if (b.dataset.armed) { newSaga(); beginCamp(); }
+    else { b.dataset.armed = '1'; b.textContent = 'Tap again to erase your saga'; }
+  } else if (t === 'next') nextChapter();
+  else if (t === 'epilogue') startEpilogue();
+  else if (t === 'again') { newSaga(); showTitle(); }
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+window.addEventListener('pagehide', save);
+
+// ----- main loop -----
+let lastFrame = 0, uiAcc = 1, saveAcc = 0;
+function frame(now) {
+  const dt = lastFrame ? Math.min(0.25, (now - lastFrame) / 1000) : 0;
+  lastFrame = now;
+  const live = S.phase === 'camp' && !UI.paused && els.theater.hidden;
+  if (live && !UI.eventShown) tick(S, dt * DEV.speed);
+  if (live && S.pending && UI.eventShown !== S.pending) showEvent();
+  pumpSaga(now);
+  const sid = calOf(S).season.id;
+  if (sid !== UI.lastSeason) { if (UI.lastSeason && live) Snd.horn(); UI.lastSeason = sid; Snd.season(sid); }
+  if (UI.lastTrip && !S.trip) for (const k in S.seen) if (k.indexOf('send') === 0) delete S.seen[k];
+  UI.lastTrip = S.trip;
+  Snd.music();
+  if (els.theater.hidden) {
+    if (live && !UI.eventShown) workerBeat(dt);
+    const V = campView(S, now / 1000, dt);
+    sceneR.c.clearRect(0, 0, sceneR.W, sceneR.H);
+    drawCamp(sceneR, V, sceneR.W, sceneR.H);
+    if (V.ravens && live) sayOnce(S, 'ravens', true, RAVEN_LINES[S.ch]);
+  } else renderTheater(dt);
+  uiAcc += dt;
+  if (uiAcc >= 0.1) { uiAcc = 0; updateHeader(); updateChips(); renderPanel(); updateTabs(); }
+  saveAcc += dt;
+  if (saveAcc > 4) { saveAcc = 0; save(); }
+  requestAnimationFrame(frame);
+}
+function renderTheater(dt) {
+  TV.time += dt; TV.dt = dt;
+  const ease = (cur, target, rate) => cur + (target - cur) * (1 - Math.exp(-dt * rate));
+  TV.reef = ease(TV.reef, TV.reefTarget, 1.2); TV.land = ease(TV.land, TV.landTarget, 0.8);
+  TV.mark = ease(TV.mark, TV.markTarget, 2); TV.fade = ease(TV.fade, TV.fadeTarget, 1.6);
+  TV.digSwing = Math.max(0, TV.digSwing - dt * 4);
+  if (TV.falling) TV.fall = Math.min(1, TV.fall + dt / 1.25);
+  if (TV.art) TV.art.t += dt;
+  Theater.update(dt);
+  const rd = theaterR, c = rd.c, sc = Theater.scene;
+  c.clearRect(0, 0, rd.W, rd.H);
+  if (sc === 'title') {
+    drawCampBand(rd, stillView('autumn', 0.86, { noShip: false, s: S, birds: true, sun: { x: 0.72, y: 0.27, r: 1.25 } }));
+  } else if (sc === 'chapter') {
+    drawCampBand(rd, stillView(SEASONS[chap(S).startSeason].id, 0.86, { noShip: false, s: S, birds: true, sun: { x: 0.72, y: 0.27, r: 1.25 } }));
+  } else if (sc === 'voyage') drawVoyage(rd);
+  else if (sc === 'empty') drawCampBand(rd, stillView('summer', 0.8));
+  else if (sc === 'lapse') {
+    const k = TV.lapse;
+    const light = reduceMotion ? 0.75 : 0.5 + 0.45 * Math.sin(TV.time * 3.1);
+    const wint = reduceMotion ? 0 : 0.5 + 0.5 * Math.sin(TV.time * 1.25);
+    const V = stillView('winter', light, { pal: palette('winter', 'summer', wint, light), snow: clamp((wint - 0.55) * 2.2, 0, 1), ruin: clamp((k * 935 - 40) / 420, 0, 1) });
+    drawCampBand(rd, V);
+  } else if (sc === 'dig') drawCampBand(rd, stillView('summer', 0.88, { ruin: 1, extra: digExtras }));
+  else if (sc === 'rings') drawRings(rd);
+  else if (sc === 'final' || sc === 'end') drawFinal(rd);
+  else drawNight(rd);
+}
+
+// ----- boot -----
+function start(data) {
+  try { Snd.muted = localStorage.getItem(SOUND_KEY) === '1'; } catch (e) { /* ignore */ }
+  paintSound();
+  const hot = data && data.state ? migrate(merge(newState(), data.state)) : null;
+  S = hot || loadSaved() || newState();
+  if (S.phase === 'voyage') S.phase = 'camp';
+  if (data && data.tab) UI.tab = data.tab;
+  sceneR = makeRenderer(els.scene);
+  theaterR = makeRenderer(els.tcanvas);
+  if (S.log.length) { els.sagaLine.textContent = S.log[S.log.length - 1].text; UI.hasLine = true; }
+  if (S.phase === 'summary' || S.phase === 'epilogue' || S.phase === 'done') { Theater.open('voyage'); showSummary(); }
+  else if (hot && S.t > S.t0 + 0.5) { UI.paused = false; }
+  else if (S.ch > 1 && !S.started) showChapterCard();
+  else showTitle();
+  renderPanel(); updateTabs(); updateHeader(); updateChips();
+  requestAnimationFrame(frame);
+}
+const hotApi = window.claude && window.claude.hot;
+if (hotApi && typeof hotApi.snapshot === 'function') { try { hotApi.snapshot(() => ({ state: S, tab: UI.tab })); } catch (e) { /* ignore */ } }
+window.__vin = { state: () => S, speed: v => { DEV.speed = v; }, act: (a, id) => act(S, a, id), sailBlock: () => sailBlock(S), cargo: () => cargo(S), rates: () => rates(S), season: () => calOf(S).season.id, left: () => calOf(S).left };
+if (hotApi && typeof hotApi.ready === 'function') hotApi.ready(start);
+else start((hotApi && hotApi.data) || {});
+
+})();
+</script>
+</body>
+</html>
