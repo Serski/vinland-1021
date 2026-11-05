@@ -85,10 +85,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--ember)
   margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
 }
 .stage {
-  position: relative; height: clamp(380px, 56vh, 520px); overflow: hidden;
+  position: relative; height: clamp(400px, 62vh, 600px); overflow: hidden;
   background: var(--hull); user-select: none; -webkit-user-select: none; touch-action: manipulation;
 }
-@supports (height: 1dvh) { .stage { height: clamp(380px, 56dvh, 520px); } }
+@supports (height: 1dvh) { .stage { height: clamp(400px, 62dvh, 600px); } }
 @media (max-width: 899px) and (max-height: 600px) { .stage { height: 62vh; } }
 #scene { display: block; width: 100%; height: 100%; }
 #top {
@@ -1384,30 +1384,37 @@ function pill(c, x, y, w, h) {
   c.closePath(); c.fill();
 }
 const sunRadius = (W, H) => Math.min(W * 0.11, H * 0.16);
+// The part of the sky that shows. On a phone the zoomed view puts the top of the sky under the season
+// overlay (V.skyTop, in band pixels), so the sun, moon, birds, clouds and stars are laid out below it.
+function skyOf(V, H) {
+  const yH = H * 0.5, top = clamp(V.skyTop || 0, 0, yH * 0.8);
+  return { yH, top, k: (yH - top) / yH, y: f => top + (yH - top) * f * 2 };
+}
 function drawSunMoon(c, W, H, yH, V) {
-  const P = V.pal, R0 = sunRadius(W, H), list = [];
+  const P = V.pal, sk = skyOf(V, H), R0 = Math.min(sunRadius(W, H), (yH - sk.top) * 0.42), list = [];
   if (V.sun) list.push({ x: V.sun.x * W, y: V.sun.y * H, r: R0 * (V.sun.r || 1), col: P.sun, a: 1 });
   else if (V.phase != null) {
     const sp = (V.phase - 0.12) / 0.76;
-    if (sp > 0 && sp < 1) list.push({ x: W * (0.06 + 0.88 * sp), y: yH + R0 * 0.3 - Math.sin(Math.PI * sp) * yH * 0.74, r: R0, col: P.sun, a: 1 });
+    if (sp > 0 && sp < 1) list.push({ x: W * (0.06 + 0.88 * sp), y: yH + R0 * 0.3 - Math.sin(Math.PI * sp) * (yH - sk.top) * 0.74, r: R0, col: P.sun, a: 1 });
     const mp = (((V.phase + 0.5) % 1) - 0.12) / 0.76, ma = clamp((0.5 - V.light) * 2.5, 0, 0.92);
-    if (mp > 0 && mp < 1 && ma > 0) list.push({ x: W * (0.06 + 0.88 * mp), y: yH + R0 * 0.3 - Math.sin(Math.PI * mp) * yH * 0.66, r: R0 * 0.52, col: [232, 236, 230], a: ma });
+    if (mp > 0 && mp < 1 && ma > 0) list.push({ x: W * (0.06 + 0.88 * mp), y: yH + R0 * 0.3 - Math.sin(Math.PI * mp) * (yH - sk.top) * 0.66, r: R0 * 0.52, col: [232, 236, 230], a: ma });
   }
   for (const b of list) { c.globalAlpha = b.a; c.fillStyle = rgb(b.col); c.beginPath(); c.arc(b.x, b.y, b.r, 0, 6.2832); c.fill(); }
   c.globalAlpha = 1;
 }
 function drawClouds(c, W, H, V) {
   c.fillStyle = rgb(V.pal.cloud, 0.9);
+  const sk = skyOf(V, H);
   for (const cl of R.clouds) {
     const x = ((((cl.x + V.time * cl.v) % 1.5) + 1.5) % 1.5) - 0.3;
-    pill(c, x * W, cl.y * H, cl.w * W, Math.max(3, cl.h * H));
+    pill(c, x * W, sk.y(cl.y), cl.w * W, Math.max(3, cl.h * H));
   }
 }
 function drawRanges(c, W, H, yH, V) {
-  const P = V.pal;
+  const P = V.pal, Hm = H * Math.sqrt(skyOf(V, H).k);
   c.fillStyle = rgb(P.far);
   c.beginPath(); c.moveTo(W * 0.28, yH + 1);
-  for (const pk of R.peaks) c.lineTo(pk[0] * W, yH - pk[1] * H);
+  for (const pk of R.peaks) c.lineTo(pk[0] * W, yH - pk[1] * Hm);
   c.lineTo(W, yH + 1); c.closePath(); c.fill();
   if (V.snow > 0.05) {
     c.fillStyle = rgb(P.sun, 0.9 * V.snow);
@@ -1415,16 +1422,16 @@ function drawRanges(c, W, H, yH, V) {
       const [px, ph] = R.peaks[i];
       if (ph < 0.09) continue;
       const [ax, ah] = R.peaks[i - 1], [bx, bh] = R.peaks[i + 1], k = 0.28;
-      c.beginPath(); c.moveTo(lerp(px, ax, k) * W, yH - lerp(ph, ah, k) * H); c.lineTo(px * W, yH - ph * H);
-      c.lineTo(lerp(px, bx, k) * W, yH - lerp(ph, bh, k) * H); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(lerp(px, ax, k) * W, yH - lerp(ph, ah, k) * Hm); c.lineTo(px * W, yH - ph * Hm);
+      c.lineTo(lerp(px, bx, k) * W, yH - lerp(ph, bh, k) * Hm); c.closePath(); c.fill();
     }
   }
   c.fillStyle = rgb(P.mid);
   c.beginPath(); c.moveTo(W * 0.46, yH + 1);
-  c.bezierCurveTo(W * 0.55, yH - H * 0.05, W * 0.63, yH - H * 0.018, W * 0.72, yH - H * 0.055);
-  c.bezierCurveTo(W * 0.82, yH - H * 0.09, W * 0.92, yH - H * 0.03, W, yH - H * 0.06);
+  c.bezierCurveTo(W * 0.55, yH - Hm * 0.05, W * 0.63, yH - Hm * 0.018, W * 0.72, yH - Hm * 0.055);
+  c.bezierCurveTo(W * 0.82, yH - Hm * 0.09, W * 0.92, yH - Hm * 0.03, W, yH - Hm * 0.06);
   c.lineTo(W, yH + 1); c.closePath(); c.fill();
-  c.beginPath(); c.ellipse(W * 0.16, yH + 1, W * 0.075, H * 0.026, 0, Math.PI, 2 * Math.PI); c.fill();
+  c.beginPath(); c.ellipse(W * 0.16, yH + 1, W * 0.075, Hm * 0.026, 0, Math.PI, 2 * Math.PI); c.fill();
 }
 function drawWaves(c, W, H, yH, P, t, xMax, dir, rows, depth) {
   c.strokeStyle = rgb(P.seaHi, 0.6); c.lineWidth = Math.max(1, H * 0.0045); c.lineCap = 'round';
@@ -1476,11 +1483,11 @@ function drawRavens(c, W, H, V) {
   if (V.light < 0.3) return;
   const period = V.birds ? 20 : 47, span = V.birds ? 20 : 16, p = (V.time % period) / span;
   if (p >= 1) return;
-  const dir = Math.floor(V.time / period) % 2 ? -1 : 1, col = rgb(V.pal.dark);
+  const dir = Math.floor(V.time / period) % 2 ? -1 : 1, col = rgb(V.pal.dark), sk = skyOf(V, H);
   for (let k = 0; k < 2; k++) {
     const q = p - k * 0.045, u = dir > 0 ? lerp(-0.1, 1.1, q) : lerp(1.1, -0.1, q);
     const sz = Math.max(7, W * 0.024) * (k ? 0.82 : 1);
-    raven(c, u * W, H * (0.2 + 0.06 * k + 0.025 * Math.sin(q * 7 + k)), sz, Math.sin(V.time * 7 + k * 1.3), col);
+    raven(c, u * W, sk.y(0.2 + 0.06 * k + 0.025 * Math.sin(q * 7 + k)), sz, Math.sin(V.time * 7 + k * 1.3), col);
   }
   V.ravens = true;
 }
@@ -1691,9 +1698,9 @@ function updateSmoke(rd, W, H, V) {
       rd.smokeAcc = 0;
       for (let i = 0; i < V.s.halls; i++) {
         const sp = HALL_SPOTS[i];
-        rd.smoke.push({ x: sp.x * W + W * 0.02, y: sp.y * H - H * 0.075, r: 1.5, a: 0.42, vx: 3 + Math.random() * 3, vy: -7 - Math.random() * 5 });
+        rd.smoke.push({ x: sp.x * W + W * 0.02, y: sp.y * H - H * 0.075 * (V.sq || 1), r: 1.5, a: 0.42, vx: 3 + Math.random() * 3, vy: -7 - Math.random() * 5 });
       }
-      if (V.s.ch === 4 && V.s.flags.brothersHouse && !V.s.flags.massacre) rd.smoke.push({ x: W * 0.595, y: H * 0.7, r: 1.5, a: 0.42, vx: 3 + Math.random() * 3, vy: -7 - Math.random() * 5 });
+      if (V.s.ch === 4 && V.s.flags.brothersHouse && !V.s.flags.massacre) rd.smoke.push({ x: W * 0.595, y: H * (0.7 + 0.068 * (1 - (V.sq || 1))), r: 1.5, a: 0.42, vx: 3 + Math.random() * 3, vy: -7 - Math.random() * 5 });
     }
   }
   const col = rgb(V.pal.cloud);
@@ -1721,7 +1728,7 @@ function drawWeather(c, W, H, V) {
   }
 }
 function drawRacks(c, W, H, V) {
-  const x = W * 0.52, y = H * 0.69, w = W * 0.05, h = H * 0.062;
+  const x = W * 0.52, y = H * 0.69, w = W * 0.05, h = H * 0.062 * (V.sq || 1);
   c.strokeStyle = rgb(V.pal.dark); c.lineWidth = Math.max(1.2, W * 0.003);
   c.beginPath(); c.moveTo(x - w / 2, y); c.lineTo(x - w / 2, y - h); c.moveTo(x + w / 2, y); c.lineTo(x + w / 2, y - h);
   c.moveTo(x - w * 0.62, y - h); c.lineTo(x + w * 0.62, y - h); c.stroke();
@@ -1748,14 +1755,14 @@ function drawCattle(c, W, H, V) {
   drawCow(c, W * 0.39, H * 0.975, H * 0.056, rgb(V.pal.dark), true, V.time, 99);
 }
 function drawByre(c, W, H, V) {
-  const P = V.pal, x = W * 0.06, y = H * 0.865, w = W * 0.085, hh = H * 0.05 * (1 - 0.6 * V.ruin);
+  const P = V.pal, x = W * 0.06, y = H * 0.865, w = W * 0.085, hh = H * 0.05 * (V.sq || 1) * (1 - 0.6 * V.ruin);
   c.fillStyle = rgb(mixRGB(mixRGB(P.dark, P.near, 0.24), mixRGB(P.mid, P.near, 0.5), V.ruin));
   hallPath(c, x, y, w, hh); c.fill();
   if (V.snow > 0.05) { c.save(); hallPath(c, x, y, w, hh); c.clip(); c.fillStyle = rgb(P.sun, 0.92 * V.snow); c.fillRect(x - w / 2, y - hh - 2, w, hh * 0.4 + 2); c.restore(); }
   if (V.ruin < 0.4) { c.fillStyle = rgb(P.dark); c.fillRect(x + w * 0.12, y - hh * 0.5, w * 0.12, hh * 0.5); }
 }
 function drawPalisade(c, W, H, V) {
-  const P = V.pal, y = H * 0.885, x0 = W * 0.12, x1 = W * 0.53, step = Math.max(3, W * 0.011), h = H * 0.05;
+  const P = V.pal, y = H * 0.885, x0 = W * 0.12, x1 = W * 0.53, step = Math.max(3, W * 0.011), h = H * 0.05 * (V.sq || 1);
   c.fillStyle = rgb(P.dark);
   for (let x = x0; x <= x1; x += step) {
     if (x > W * 0.285 && x < W * 0.325) continue;   // the gate
@@ -1785,7 +1792,9 @@ function shipLook(s) { return { afloat: shipReady(s) && s.phase === 'camp', plan
 
 function drawCamp(rd, V, W, H) {
   const c = rd.c, P = V.pal, s = V.s, t = V.time;
-  const yH = H * 0.5;
+  const yH = H * 0.5, sk = skyOf(V, H);
+  // A tall, narrow band would stretch the turf houses upward; keep them long and low.
+  const sq = V.sq = clamp(W / H / 1.3, 0.6, 1);
   let g = c.createLinearGradient(0, 0, 0, yH);
   g.addColorStop(0, rgb(P.skyTop)); g.addColorStop(1, rgb(P.skyBot));
   c.fillStyle = g; c.fillRect(0, 0, W, yH + 2);
@@ -1793,10 +1802,10 @@ function drawCamp(rd, V, W, H) {
   if (dark > 0.45) {
     const a = Math.min(1, (dark - 0.45) / 0.45);
     c.fillStyle = '#eef1fb';
-    for (const st of R.stars) { c.globalAlpha = a * (0.5 + 0.5 * Math.sin(t * st.sp + st.ph)); c.fillRect(st.x * W, st.y * yH * 0.92, st.r, st.r); }
+    for (const st of R.stars) { c.globalAlpha = a * (0.5 + 0.5 * Math.sin(t * st.sp + st.ph)); c.fillRect(st.x * W, sk.top + st.y * (yH - sk.top) * 0.92, st.r, st.r); }
     c.globalAlpha = 1;
   }
-  if (V.aurora > 0.02) drawAurora(c, W, yH, t, V.aurora);
+  if (V.aurora > 0.02) { c.save(); c.translate(0, sk.top); drawAurora(c, W, yH - sk.top, t, V.aurora); c.restore(); }
   drawSunMoon(c, W, H, yH, V);
   drawClouds(c, W, H, V);
   if (V.people || V.birds) drawRavens(c, W, H, V);
@@ -1827,11 +1836,11 @@ function drawCamp(rd, V, W, H) {
   if (V.ruin < 0.05) drawBooths(c, W, H, V);
   if (s.up.racks && V.ruin < 0.05) drawRacks(c, W, H, V);
   if (s.built.byre) drawByre(c, W, H, V);
-  if (s.built.shed) drawShed(c, W * 0.13, H * 0.715, W * 0.2, H * 0.09, V);
+  if (s.built.shed) drawShed(c, W * 0.13, H * 0.715, W * 0.2, H * 0.09 * sq, V);
   if (ship && !ship.afloat) drawKnarr(c, W * 0.13, H * 0.725, W * 0.2, ship, P);
-  for (const sp of HALL_SPOTS.slice(0, s.halls).sort((p, q) => p.y - q.y)) drawHall(c, sp.x * W, sp.y * H, W * 0.13, H * 0.075, V);
-  if (s.ch === 4 && s.flags.brothersHouse) drawHall(c, W * 0.575, H * 0.77, W * 0.11, H * 0.068, s.flags.massacre ? Object.assign({}, V, { people: false }) : V);
-  if (s.built.smithy) drawSmithy(rd, c, W * 0.535, H * 0.905, W * 0.055, H * 0.055, V);
+  for (const sp of HALL_SPOTS.slice(0, s.halls).sort((p, q) => p.y - q.y)) drawHall(c, sp.x * W, sp.y * H, W * 0.13, H * 0.075 * sq, V);
+  if (s.ch === 4 && s.flags.brothersHouse) drawHall(c, W * 0.575, H * 0.77, W * 0.11, H * 0.068 * sq, s.flags.massacre ? Object.assign({}, V, { people: false }) : V);
+  if (s.built.smithy) drawSmithy(rd, c, W * 0.535, H * 0.905, W * 0.055, H * 0.055 * sq, V);
   if (s.built.palisade && V.ruin < 0.5) drawPalisade(c, W, H, V);
   if (V.people) drawCattle(c, W, H, V);
   drawTrees(c, W, H, V);
@@ -2433,16 +2442,32 @@ function floater(x, y, text) {
 }
 // The camp is drawn in the strip between the season overlay and the saga overlay, so the halls and the
 // woodcutters stay in view. The sky runs on under the season, and the ground under the saga.
-const BAND = { oy: 0, h: 0 };
+// On a phone the strip is short, so the view zooms in: the land fills the strip, a band of sky shows
+// above it, and the scene is drawn a little wider than the screen, so the far edge of the forest is cut
+// off instead of everything shrinking. The sky keeps its sun, moon and birds inside the part that shows.
+const BAND = { oy: 0, h: 0, w: 0, ox: 0, sky: 0, wTop: 0 };
+const PHONE = window.matchMedia ? matchMedia('(max-width: 899px)') : { matches: false };
+const ZOOM_SKY = 0.3;   // the fraction of the zoomed band that sits under the season overlay
 function measureFoot() {
   const lh = parseFloat(getComputedStyle(els.sagaLine).lineHeight) || 25;
   UI.footReserve = 36 + 17 + 8 + 3 * lh + 16;
 }
 function stageBand() {
-  const H = sceneR.H, oy = clamp(els.top.offsetHeight - 40, 0, H * 0.4);
-  const h = Math.max(H * 0.45, H - oy - Math.max(0, (UI.footReserve || 0) - 30));
-  if (!BAND.h) { BAND.oy = oy; BAND.h = h; }
-  BAND.oy += (oy - BAND.oy) * 0.15; BAND.h += (h - BAND.h) * 0.15;
+  const W = sceneR.W, H = sceneR.H, head = els.top.offsetHeight;
+  const wTop = head - 30, wBot = H - Math.max(0, (UI.footReserve || 0) - 30);
+  let oy, h, w = W, ox = 0, sky = 0;
+  if (PHONE.matches && wBot - wTop > 100) {
+    h = (wBot - wTop) / (1 - ZOOM_SKY); oy = wBot - h;
+    w = Math.max(W, h * 1.05); ox = Math.min(w - W, w * 0.02);
+    sky = wTop + 15 - oy;   // the sun and birds stay below the middle of the season overlay's fade
+  } else {
+    oy = clamp(head - 40, 0, H * 0.4);
+    h = Math.max(H * 0.45, wBot - oy);
+  }
+  if (!BAND.h) Object.assign(BAND, { oy, h, w, ox, sky });
+  const k = 0.15;
+  BAND.oy += (oy - BAND.oy) * k; BAND.h += (h - BAND.h) * k; BAND.w += (w - BAND.w) * k;
+  BAND.ox += (ox - BAND.ox) * k; BAND.sky += (sky - BAND.sky) * k; BAND.wTop = wTop;
   return BAND;
 }
 // The men chop on their own. Every few seconds a tree near them shakes and the timber they cut floats up.
@@ -2454,13 +2479,15 @@ function workerBeat(dt) {
   WB.acc = 0; WB.next = 2.2 + Math.random() * 1.6;
   const cut = rates(S).timberIn * span;
   if (S.jobs.wood < 1 || cut < 0.5) return;
-  const near = R.front.filter(t => !t.stump && t.x < 0.84);
+  const B = BAND.h ? BAND : { oy: 0, h: sceneR.H, w: sceneR.W, ox: 0, wTop: 0 };
+  const edge = Math.min(0.84, (B.ox + sceneR.W - 24) / B.w);   // only trees that are on screen
+  const near = R.front.filter(t => !t.stump && t.x < edge);
   const tr = near[Math.floor(Math.random() * near.length)];
   if (!tr) return;
   tr.shake = 0.6;
-  const x = tr.x * sceneR.W, B = BAND.h ? BAND : { oy: 0, h: sceneR.H };
+  const x = tr.x * B.w;
   emit(sceneR, x, (tr.base - tr.h * 0.15) * B.h, reduceMotion ? 2 : 5, CHIP_COLORS);
-  floater(x, B.oy + (tr.base - tr.h * 1.08) * B.h, '+' + Math.round(cut));
+  floater(x - B.ox, Math.max(B.wTop + 16, B.oy + (tr.base - tr.h * 1.08) * B.h), '+' + Math.round(cut));
   Snd.work();
 }
 function doAction(btn) {
@@ -2855,7 +2882,8 @@ function frame(now) {
     c.clearRect(0, 0, sceneR.W, sceneR.H);
     if (B.oy > 0) { c.fillStyle = rgb(V.pal.skyTop); c.fillRect(0, 0, sceneR.W, B.oy + 1); }
     c.fillStyle = rgb(V.pal.landLo); c.fillRect(0, B.oy + B.h - 1, sceneR.W, sceneR.H - B.oy - B.h + 1);
-    c.save(); c.translate(0, B.oy); drawCamp(sceneR, V, sceneR.W, B.h); c.restore();
+    V.skyTop = B.sky;
+    c.save(); c.translate(-B.ox, B.oy); drawCamp(sceneR, V, B.w, B.h); c.restore();
     if (V.ravens && live) sayOnce(S, 'ravens', true, RAVEN_LINES[S.ch]);
   } else renderTheater(dt);
   uiAcc += dt;
