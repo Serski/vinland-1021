@@ -3,43 +3,46 @@
 <meta name="description" content="A small idle game about Leif Eriksson's camp in Newfoundland, around the year 1000.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Runic&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;700&family=Noto+Sans+Runic&display=swap">
 <style>
 :root {
-  /* Layout: the camp is a lit window at the top, the saga runs under it like a line of manuscript,
-     and the work ledger sits below it on phones and beside it on wide screens.
-     One deliberate look: a North Atlantic night, lit by a hearth. */
-  --night: #0f181d;
-  --hull: #15222a;
-  --hull-2: #1a2a33;
-  --line: #2a3d47;
-  --bone: #ece4d3;
-  --bone-dim: #a2aaa3;
-  --ember: #e9a45b;
-  --ember-deep: #b5732f;
-  --on-ember: #1d1409;
+  /* Layout: the camp fills the top of the screen like a window, with the season and stores written across its sky
+     and the saga across its ground. Phones get the ledger below it and a rune tab bar pinned to the bottom; wide
+     screens get the ledger beside it, behind a rail of rune tabs. One look: a dark ledger, runestone red the only accent. */
+  --night: #0c1114;
+  --hull: #0c1114;
+  --hull-2: #11181c;
+  --line: #263139;
+  --bone: #efe8da;
+  --bone-dim: #8f9a98;
+  --ember: #d65a3c;
+  --ember-deep: #a8432b;
+  --on-ember: #160805;
+  --ochre: #d65a3c;
   --moss: #a8c174;
   --rust: #e07856;
   --frost: #a9cbd8;
-  --ochre: #b4503a;
+  --chip-bg: rgba(12, 17, 20, 0.8);
+  --card-bg: #0c1114;
+  --scrim: rgba(10, 15, 18, 0.9);
+  --scrim-soft: rgba(12, 17, 20, 0.74);
+  --scrim-top: rgba(10, 16, 24, 0.92);
+  --scrim-top-end: rgba(10, 16, 24, 0.88);
+  --scrim-top-clear: rgba(10, 16, 24, 0);
+  --scrim-foot: rgba(12, 17, 20, 0.97);
+  --scrim-foot-clear: rgba(12, 17, 20, 0);
+  --scrim-clear: rgba(10, 15, 18, 0);
+  --shadow: rgba(0, 0, 0, 0.6);
   --groove: #2b2724;
   --stone: #66615a;
   --stone-hi: #7e7972;
   --stone-lo: #4a4641;
   --stone-dim: rgba(240, 234, 222, 0.8);
   --frame-line: rgba(236, 228, 211, 0.12);
-  --bevel-hi: rgba(255, 255, 255, 0.3);
   --bevel-lo: rgba(0, 0, 0, 0.2);
-  --ink: #1f0c08;
-  --ink-lift: rgba(255, 214, 190, 0.22);
-  --chip-bg: rgba(11, 18, 23, 0.7);
-  --scrim: rgba(8, 13, 16, 0.88);
-  --card-bg: rgba(17, 28, 35, 0.95);
-  --shadow: rgba(0, 0, 0, 0.6);
-  --font-saga: "Alegreya", "Noto Sans Runic", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --font-sc: "Alegreya SC", "Alegreya", "Noto Sans Runic", Georgia, serif;
-  --font-ui: "Alegreya Sans", "Noto Sans Runic", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+  --font-saga: "Familjen Grotesk", "Noto Sans Runic", system-ui, sans-serif;
+  --font-sc: "Familjen Grotesk", "Noto Sans Runic", system-ui, sans-serif;
+  --font-ui: "Familjen Grotesk", "Noto Sans Runic", system-ui, sans-serif;
   --font-rune: "Noto Sans Runic", "Segoe UI Historic", sans-serif;
   color-scheme: dark;
 }
@@ -52,225 +55,262 @@ body {
   font: 15px/1.4 var(--font-ui);
   -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
 }
-button { font: inherit; color: inherit; }
+button { font: inherit; color: inherit; border-radius: 0; }
 button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.rune, .row-rune, .tab-rune, .season-rune, .sep, .runes, .stone-runes, .sheet-runes { font-family: var(--font-rune); font-weight: 400; }
+.plait { display: none; }
+
+/* ---------- shared type: uppercase labels, tight heavy headings ---------- */
+.season-name, .season-year, .res .lbl, .tabs button, .tab-label, .sec, .eyebrow, .goals-t, .log .when, .cargo-grid .k, .t-hint,
+.title-kicker, .chapter-num, .ev-tag, .hint-chip, .meter-w {
+  font-family: var(--font-sc); font-weight: 500; text-transform: uppercase; letter-spacing: 0.18em;
+}
+.summary-card h2, .stone h2, .sheet-card h2, .t-year, .title-num, .title-name {
+  font-family: var(--font-saga); font-weight: 700; letter-spacing: -0.03em; line-height: 0.92;
+}
 
 /* ---------- app frame ---------- */
 #app {
   height: 100%; max-width: 640px; margin: 0 auto;
-  display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); gap: 8px;
-  padding-block: 8px 0;
+  display: grid; grid-template-rows: auto minmax(0, 1fr);
+  padding-block: 0;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-#top { display: grid; gap: 4px; }
-.season-row { display: flex; align-items: center; gap: 10px; min-height: 38px; }
-.season-name { font-family: var(--font-sc); font-weight: 700; font-size: 20px; letter-spacing: 0.05em; }
-.season-year { font-family: var(--font-sc); font-size: 15px; letter-spacing: 0.06em; color: var(--bone-dim); }
+
+/* ---------- the camp: a full-bleed window, season across the sky, saga across the ground ---------- */
+.camp {
+  position: relative; min-height: 0;
+  margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+}
+.stage {
+  position: relative; height: clamp(380px, 56vh, 520px); overflow: hidden;
+  background: var(--hull); user-select: none; -webkit-user-select: none; touch-action: manipulation;
+}
+@supports (height: 1dvh) { .stage { height: clamp(380px, 56dvh, 520px); } }
+@media (max-width: 899px) and (max-height: 600px) { .stage { height: 62vh; } }
+#scene { display: block; width: 100%; height: 100%; }
+#top {
+  position: absolute; z-index: 2; top: 0; left: 0; right: 0;
+  display: grid; gap: 6px; pointer-events: none;
+  padding-top: 12px; padding-bottom: 30px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(to bottom, var(--scrim-top) 0, var(--scrim-top-end) calc(100% - 30px), var(--scrim-top-clear) 100%);
+}
+#top button { pointer-events: auto; }
+.season-row { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.season-rune { font-size: 22px; line-height: 1; color: var(--ember); min-width: 0.9em; text-align: center; cursor: default; }
+.season-name { font-size: 14px; font-weight: 700; letter-spacing: 0.2em; }
+.season-year { font-size: 13px; color: var(--bone-dim); }
+.sep { font-size: 14px; color: var(--ember); }
 .spacer { flex: 1; }
 .icon-btn {
-  width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer;
-  border-radius: 10px; border: 1px solid var(--line); background: var(--hull); color: var(--bone);
+  width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--line); background: var(--chip-bg); color: var(--bone);
 }
 .icon-btn svg { width: 20px; height: 20px; }
-.res-row { display: flex; flex-wrap: wrap; gap: 2px 16px; min-height: 24px; }
-.res { display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums lining-nums; }
-.res .lbl { font-family: var(--font-sc); font-size: 13px; letter-spacing: 0.06em; color: var(--bone-dim); }
-.res b { font-size: 18px; font-weight: 700; }
-.res i { font-style: normal; font-size: 12.5px; color: var(--moss); }
+.res-row { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.res {
+  display: grid; grid-template-columns: auto auto auto; grid-template-areas: "lbl lbl lbl" "rune val rate";
+  align-items: baseline; column-gap: 5px; row-gap: 2px; font-variant-numeric: tabular-nums lining-nums;
+}
+.res .lbl { grid-area: lbl; font-size: 12px; line-height: 1.1; color: var(--bone-dim); }
+.res .rune { grid-area: rune; font-size: 15px; line-height: 1; color: var(--ember); }
+.res b { grid-area: val; font: 700 22px/1 var(--font-ui); color: var(--bone); }
+.res i { grid-area: rate; font-style: normal; font-size: 12px; color: var(--moss); }
 .res i.neg { color: var(--rust); }
 .res i:empty { display: none; }
-
-/* ---------- the camp window ---------- */
-.stage {
-  position: relative; height: clamp(170px, 31vh, 400px);
-  border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--hull);
-  user-select: none; -webkit-user-select: none; touch-action: manipulation;
-}
-@supports (height: 1dvh) { .stage { height: clamp(170px, 31dvh, 400px); } }
-#scene { display: block; width: 100%; height: 100%; }
-.chips { position: absolute; left: 8px; right: 8px; top: 8px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 2px; pointer-events: none; }
 .chip {
-  font-size: 12.5px; line-height: 1.2; padding: 4px 9px; border-radius: 999px;
-  background: var(--chip-bg); color: var(--bone); border: 1px solid var(--line);
-  font-variant-numeric: tabular-nums;
+  padding: 5px 9px; border: 0; background: var(--chip-bg); color: var(--bone);
+  font: 500 12px/1.2 var(--font-ui); letter-spacing: 0.04em; font-variant-numeric: tabular-nums;
 }
-.chip.warn { color: var(--rust); border-color: var(--rust); }
+.chip.warn { color: var(--rust); }
 .chip.frost { color: var(--frost); }
+.chip.good { color: var(--moss); }
 .chip.clock { margin-left: auto; color: var(--bone-dim); }
-.hint-chip {
-  position: absolute; left: 50%; bottom: 9px; transform: translateX(-50%);
-  max-width: calc(100% - 20px); width: max-content; text-align: center; pointer-events: none;
-  font-size: 13.5px; line-height: 1.25; padding: 5px 11px; border-radius: 999px;
-  background: var(--chip-bg); color: var(--ember); border: 1px solid var(--ember-deep);
-}
-.hint-chip:empty { display: none; }
 .floaters { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .floater {
-  position: absolute; transform: translate(-50%, -50%);
-  font: 700 17px var(--font-ui); color: var(--bone); text-shadow: 0 0 3px var(--shadow), 0 1px 3px var(--shadow), 0 0 10px var(--shadow);
+  position: absolute; transform: translate(-50%, -50%); padding: 1px 6px;
+  font: 700 15px/1.2 var(--font-ui); color: var(--bone); background: var(--chip-bg);
   animation: floatUp 0.9s ease-out forwards;
 }
 @keyframes floatUp { from { opacity: 1; transform: translate(-50%, -50%); } to { opacity: 0; transform: translate(-50%, -200%); } }
-
-/* ---------- saga line ---------- */
-.saga { height: 68px; cursor: pointer; border-radius: 8px; overflow: hidden; }
+.camp-foot {
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: 0;
+  display: grid; gap: 8px;
+  padding-top: 36px; padding-bottom: 16px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(to bottom, var(--scrim-foot-clear) 0, var(--scrim-foot) 30px, var(--scrim-foot) 100%);
+}
+.hint-chip { justify-self: start; max-width: 100%; font-size: 12px; line-height: 1.35; letter-spacing: 0.16em; color: var(--bone); pointer-events: none; }
+.hint-chip::before { content: "→ "; color: var(--ember); letter-spacing: 0; }
+.hint-chip:empty { display: none; }
+.saga { cursor: pointer; }
+.saga:focus-visible { outline-offset: 4px; }
 .saga-line {
-  margin: 0; font-family: var(--font-saga); font-size: 16.5px; line-height: 1.36; color: var(--bone);
+  margin: 0; padding-left: 12px; border-left: 2px solid var(--ember);
+  font: 400 18px/1.4 var(--font-saga); color: var(--bone);
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-wrap: pretty;
 }
+.saga-line:empty { display: none; }
 .saga-line.in { animation: sagaIn 0.6s ease-out; }
 @keyframes sagaIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 
-/* ---------- ledger ---------- */
-.side { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-height: 0; }
-.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); }
+/* ---------- the ledger, with a rune tab bar pinned to the bottom ---------- */
+.side { display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; }
+.tabs {
+  position: fixed; z-index: 30; left: 0; right: 0; bottom: 0;
+  height: calc(84px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  background: var(--night); border-top: 1px solid var(--line);
+}
 .tabs button {
-  position: relative; background: none; border: 0; cursor: pointer;
-  padding: 9px 12px 8px; margin-bottom: -1px; border-bottom: 2px solid transparent;
-  font-family: var(--font-sc); font-size: 16px; letter-spacing: 0.04em; color: var(--bone-dim);
+  display: grid; justify-items: center; align-content: center; gap: 8px; min-height: 44px; padding: 0;
+  border: 0; background: none; cursor: pointer; color: var(--bone-dim); font-size: 12px; letter-spacing: 0.16em;
 }
-.tabs button.on { color: var(--bone); border-bottom-color: var(--ember); }
-.tabs .dot { position: absolute; top: 7px; right: 2px; width: 7px; height: 7px; border-radius: 50%; background: var(--ember); display: none; }
+.tab-rune { position: relative; font-size: 22px; line-height: 1; letter-spacing: 0; }
+.tab-label { font-size: 12px; line-height: 1; }
+.tabs button.on { color: var(--bone); }
+.tabs button.on .tab-rune { color: var(--ember); }
+.tabs .dot { position: absolute; top: -3px; right: -10px; width: 7px; height: 7px; background: var(--ember); display: none; }
 .tabs button.badge .dot { display: block; }
-.panel { overflow-y: auto; min-height: 0; padding-block: 2px 28px; overscroll-behavior: contain; }
+.panel { overflow-y: auto; min-height: 0; padding-block: 4px calc(100px + env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; }
 .row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px;
-  padding-block: 11px; border-bottom: 1px solid var(--line);
+  display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; column-gap: 10px;
+  padding-block: 12px; border-bottom: 1px solid var(--line);
 }
+.row-rune { align-self: start; padding-top: 1px; font-size: 19px; line-height: 1; text-align: center; color: var(--bone-dim); }
 .row-main { min-width: 0; }
-.row-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 9px; font-family: var(--font-saga); font-size: 17.5px; font-weight: 500; line-height: 1.2; }
-.count { font-family: var(--font-ui); font-weight: 700; font-size: 15px; color: var(--ember); font-variant-numeric: tabular-nums; }
-.new { font-family: var(--font-sc); font-size: 11.5px; letter-spacing: 0.08em; color: var(--on-ember); background: var(--ember); border-radius: 4px; padding: 0 6px; }
-.row-desc { margin: 3px 0 0; color: var(--bone-dim); font-size: 14px; line-height: 1.36; }
+.row-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 9px; font: 500 18px/1.2 var(--font-saga); }
+.row-title .count { font: 700 15px var(--font-ui); color: var(--bone-dim); font-variant-numeric: tabular-nums; }
+.row-desc, .row-cost { margin: 3px 0 0; font-size: 14px; line-height: 1.36; color: var(--bone-dim); }
+.row-cost { font-variant-numeric: tabular-nums; }
+.row-cost:empty { display: none; }
+.row-act { display: flex; align-items: center; gap: 8px; }
+.row-act .count {
+  min-width: 44px; height: 44px; padding: 0 6px; display: grid; place-items: center;
+  border: 1px solid var(--line); font: 700 16px var(--font-ui); color: var(--bone); font-variant-numeric: tabular-nums;
+}
+.new { font: 700 11px/1.5 var(--font-sc); letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-ember); background: var(--ember); padding: 0 6px; }
 .buy {
-  min-width: 100px; min-height: 48px; display: grid; justify-items: center; align-content: center; gap: 1px;
-  padding: 5px 12px; border-radius: 10px; cursor: pointer; touch-action: manipulation;
-  border: 1px solid var(--ember-deep); background: var(--ember); color: var(--on-ember);
+  min-width: 44px; min-height: 44px; display: grid; justify-items: center; align-content: center; gap: 1px;
+  padding: 6px 12px; cursor: pointer; touch-action: manipulation;
+  border: 1px solid var(--ember); background: var(--ember); color: var(--on-ember);
   transition: transform 0.08s ease;
 }
+.buy.plus { width: 44px; padding: 0; }
+.buy.plus .b-label { font-size: 24px; line-height: 1; }
 .buy:active { transform: scale(0.96); }
-.buy.off { background: transparent; color: var(--bone-dim); border-color: var(--line); }
+.buy.off { background: transparent; border-color: var(--line); color: var(--bone-dim); }
 .buy.off:active { transform: none; }
 .b-label { font-weight: 700; font-size: 15px; line-height: 1.15; }
-.b-cost { font-size: 12.5px; line-height: 1.15; font-variant-numeric: tabular-nums; opacity: 0.9; }
+.b-cost { font-size: 12.5px; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .b-cost:empty { display: none; }
 .buy.shake { animation: shake 0.32s; }
 @keyframes shake { 25% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
-.bar { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 8px; }
+.bar { height: 5px; background: var(--line); overflow: hidden; margin-top: 8px; }
 .bar i { display: block; height: 100%; width: 0; background: var(--ember); transition: width 0.25s linear; }
-.summary { padding-block: 11px; border-bottom: 1px solid var(--line); }
+.summary { padding-block: 12px; border-bottom: 1px solid var(--line); }
 .sum-text { margin: 0; font-size: 14.5px; color: var(--bone); }
-.sec { margin: 18px 0 2px; font-family: var(--font-sc); font-weight: 500; font-size: 14px; letter-spacing: 0.08em; color: var(--bone-dim); }
-.disc { display: grid; gap: 1px; padding-block: 9px; border-bottom: 1px dashed var(--line); }
-.disc-t { font-family: var(--font-saga); font-size: 16.5px; }
-.disc-d { color: var(--bone-dim); font-size: 14px; }
-.disc.dim .disc-t { color: var(--bone-dim); font-style: italic; }
-.done { margin: 14px 0 0; color: var(--bone-dim); font-size: 13.5px; }
-.cargo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
-.cargo-grid div { display: grid; gap: 1px; }
-.cargo-grid .k { font-family: var(--font-sc); font-size: 12.5px; letter-spacing: 0.06em; color: var(--bone-dim); }
-.cargo-grid b { font-size: 19px; font-variant-numeric: tabular-nums; }
+.sec { margin: 22px 0 4px; font-size: 12px; letter-spacing: 0.2em; color: var(--bone-dim); }
+.disc { display: grid; gap: 2px; padding-block: 10px; border-bottom: 1px solid var(--line); }
+.disc-t { font: 500 17px var(--font-saga); }
+.disc-d { font-size: 14px; color: var(--bone-dim); }
+.disc.dim .disc-t { color: var(--bone-dim); }
+.done { margin: 14px 0 0; font-size: 13.5px; color: var(--bone-dim); }
+.cargo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.cargo-grid div { display: grid; gap: 2px; }
+.cargo-grid .k { font-size: 12px; letter-spacing: 0.16em; color: var(--bone-dim); }
+.cargo-grid b { font-size: 22px; font-variant-numeric: tabular-nums; }
 .cargo-grid .val b { color: var(--ember); }
 .sail { padding-block: 14px 4px; display: grid; gap: 10px; }
 .sail-btns { display: flex; flex-wrap: wrap; gap: 10px; }
 .buy.big { min-width: 170px; min-height: 52px; }
-.ghost { min-height: 52px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--line); background: none; cursor: pointer; }
+.ghost { min-height: 52px; padding: 0 18px; border: 1px solid var(--line); background: none; cursor: pointer; }
+.goals { padding-block: 12px 14px; border-bottom: 1px solid var(--line); }
+.goals-t { margin: 0 0 8px; font-size: 13px; color: var(--ember); }
+.goal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.goal-list li { position: relative; padding-left: 22px; font-size: 15px; line-height: 1.35; color: var(--bone); }
+.goal-list li::before { content: ""; position: absolute; left: 5px; top: 0.42em; width: 8px; height: 8px; border: 1.5px solid var(--bone-dim); }
+.goal-list li.ok { color: var(--bone-dim); }
+.goal-list li.ok::before { top: 0.3em; width: 10px; height: 5px; border: 0; border-left: 2px solid var(--moss); border-bottom: 2px solid var(--moss); transform: rotate(-45deg); }
+.meter { display: grid; gap: 8px; padding-block: 14px; border-bottom: 1px solid var(--line); }
+.meter-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.meter-t { font: 500 18px var(--font-saga); }
+.meter-w { font-size: 13px; }
+.meter.good .meter-w { color: var(--moss); }
+.meter.bad .meter-w { color: var(--rust); }
+.mbar { position: relative; height: 8px; background: var(--line); }
+.mbar i { display: block; height: 100%; background: var(--bone-dim); transition: width 0.3s linear; }
+.meter.good .mbar i { background: var(--moss); }
+.meter.bad .mbar i { background: var(--rust); }
+.mbar .mark { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--rust); }
 
-/* ---------- theater: title, voyage, epilogue ---------- */
+/* ---------- theater: title, chapter cards, voyages, epilogue ---------- */
 #theater { position: fixed; inset: 0; z-index: 40; background: var(--night); overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 #tcanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .t-top {
   position: absolute; left: 0; right: 0; top: 0; text-align: center; pointer-events: none;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 22px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 22px); padding-bottom: 56px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.t-year {
-  font-family: var(--font-saga); font-weight: 500; font-size: clamp(54px, 15vw, 112px); line-height: 1;
-  font-variant-numeric: lining-nums tabular-nums; color: var(--bone); text-shadow: 0 2px 30px var(--shadow);
-}
+.t-top:has(.t-year:not(:empty)) { background: linear-gradient(to bottom, var(--scrim) 0, var(--scrim) 55%, var(--scrim-clear) 100%); }
+.t-year { font-size: clamp(54px, 15vw, 112px); font-variant-numeric: lining-nums tabular-nums; color: var(--bone); }
 .t-year:empty { display: none; }
 .t-bottom {
   position: absolute; left: 0; right: 0; bottom: 0; display: grid; justify-items: center; gap: 14px; text-align: center;
   padding-top: 90px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 26px);
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  background: linear-gradient(to top, var(--scrim) 0%, var(--scrim) 45%, transparent 100%);
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(to top, var(--scrim) 0%, var(--scrim) 65%, var(--scrim-clear) 100%);
 }
-.t-text {
-  max-width: 32ch; min-height: 2.8em; font-family: var(--font-saga); font-size: clamp(19px, 1.2vw + 15px, 26px); line-height: 1.4;
-  text-wrap: balance; text-shadow: 0 1px 10px var(--shadow);
-}
+.t-text { max-width: 32ch; min-height: 2.8em; font: 400 clamp(19px, 1.2vw + 15px, 25px)/1.42 var(--font-saga); text-wrap: balance; }
 .t-text.in { animation: sagaIn 0.7s ease-out; }
-.t-text .mine { display: block; margin-top: 6px; color: var(--ember); font-style: italic; font-size: 0.85em; }
-.t-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.t-text .mine { display: block; margin-top: 6px; color: var(--ember); font-size: 0.85em; }
+.t-actions { display: grid; width: min(520px, 100%); border-top: 1px solid var(--line); text-align: left; }
 .t-actions:empty { display: none; }
-.t-hint { font-family: var(--font-sc); font-size: 14px; letter-spacing: 0.1em; color: var(--bone-dim); min-height: 1.3em; animation: pulse 2.4s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: 0.45; } }
+.t-hint { min-height: 1.3em; font-size: 12px; letter-spacing: 0.22em; color: var(--bone-dim); animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.5; } }
+.tbtn {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; min-height: 56px;
+  padding: 0 2px; border: 0; border-bottom: 1px solid var(--line); background: none; cursor: pointer;
+  color: var(--bone); font: 700 17px/1.2 var(--font-ui); text-align: left;
+}
+.tbtn::after { content: "ᚱ"; font-family: var(--font-rune); font-weight: 400; font-size: 20px; color: var(--ember); }
+.tbtn:hover { background: var(--hull-2); }
+.tbtn, .menu-list button, .sheet-btns button { transition: padding 0.12s ease; }
+.tbtn:focus-visible, .menu-list button:focus-visible, .sheet-btns button:focus-visible { outline: none; background: var(--hull-2); box-shadow: inset 3px 0 0 var(--ember); padding-inline: 16px 12px; }
+.t-btns { display: grid; width: 100%; border-top: 1px solid var(--line); }
 .t-card {
-  position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; overflow-y: auto;
+  position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; overflow-y: auto; background: var(--scrim-soft);
   padding-block: calc(env(safe-area-inset-top, 0px) + 24px) calc(env(safe-area-inset-bottom, 0px) + 24px);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.card-inner { width: min(460px, 100%); display: grid; gap: 14px; justify-items: center; text-align: center; }
-.title-num {
-  font-family: var(--font-saga); font-weight: 500; font-size: clamp(96px, 30vw, 200px); line-height: 0.86;
-  font-variant-numeric: lining-nums; letter-spacing: -0.01em; color: var(--bone); text-shadow: 0 6px 50px var(--shadow);
+.t-card.poster { place-items: stretch; padding: 0; background: none; }
+.poster-inner { min-height: 100%; display: grid; grid-template-rows: auto minmax(40px, 1fr) auto; }
+.poster-top {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 22px); padding-bottom: 56px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(to bottom, var(--scrim) 0, var(--scrim) 45%, var(--scrim-clear) 100%);
 }
-.runes { font-family: var(--font-rune); font-size: 18px; letter-spacing: 0.55em; margin-right: -0.55em; color: var(--ember); }
-.title-sub { margin: 0; font-family: var(--font-saga); font-style: italic; font-size: 22px; }
-.title-note { margin: 0; color: var(--bone-dim); font-size: 13.5px; }
-.t-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; }
-.tbtn {
-  min-height: 50px; padding: 0 22px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px;
-  border: 1px solid var(--line); background: var(--card-bg); color: var(--bone);
+.poster .runes { margin: 0; font-size: 22px; letter-spacing: 0.5em; color: var(--bone); overflow-wrap: anywhere; }
+.poster-bottom {
+  grid-row: 3; display: grid; gap: 10px; text-align: left;
+  padding-top: 80px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(to bottom, var(--scrim-clear) 0, var(--scrim) 70px, var(--scrim) 100%);
 }
-.tbtn.primary { background: var(--ember); border-color: var(--ember-deep); color: var(--on-ember); }
-.summary-card { width: min(460px, 100%); background: var(--card-bg); border: 1px solid var(--line); border-radius: 16px; padding: 22px 20px 20px; display: grid; gap: 14px; }
-.eyebrow { margin: 0; font-family: var(--font-sc); font-size: 13.5px; letter-spacing: 0.1em; color: var(--ember); }
-.summary-card h2 { margin: 0; font-family: var(--font-saga); font-weight: 500; font-size: 28px; line-height: 1.15; text-wrap: balance; }
-.tally { margin: 0; display: grid; }
-.tally div { display: flex; justify-content: space-between; gap: 12px; padding-block: 7px; border-bottom: 1px solid var(--line); }
-.tally dt { color: var(--bone-dim); }
-.tally dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
-.tally .total { border-bottom: 0; padding-top: 10px; }
-.tally .total dt { color: var(--bone); font-family: var(--font-sc); letter-spacing: 0.06em; font-size: 16px; }
-.tally .total dd { color: var(--ember); font-size: 22px; }
+.poster-bottom > * { width: 100%; max-width: 560px; }
+.title-kicker, .chapter-num { margin: 0; font-size: 15px; letter-spacing: 0.2em; color: var(--bone-dim); }
+.title-num, .title-name { margin: 0 0 6px; font-size: 76px; color: var(--bone); text-wrap: balance; }
+.title-sub { margin: 0 0 8px; font: 400 17px/1.4 var(--font-saga); color: var(--bone-dim); }
+.title-note { margin: 4px 0 0; font-size: 13.5px; color: var(--bone-dim); }
+.eyebrow { margin: 0; font-size: 13px; color: var(--ember); }
 .note { margin: 0; color: var(--bone-dim); font-size: 14px; }
-
-/* ---------- sheet: menu and saga log ---------- */
-#sheet { position: fixed; inset: 0; z-index: 60; background: var(--scrim); display: grid; align-items: end; justify-items: center; }
-.sheet-card {
-  width: min(560px, 100%); max-height: 82%; overflow-y: auto; background: var(--hull);
-  border: 1px solid var(--line); border-bottom: 0; border-radius: 16px 16px 0 0;
-  padding-block: 18px calc(env(safe-area-inset-bottom, 0px) + 18px);
-  padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
-}
-.sheet-card h2 { margin: 0 0 10px; font-family: var(--font-saga); font-weight: 500; font-size: 24px; }
-.sheet-card p { color: var(--bone-dim); }
-.menu-list { display: grid; gap: 8px; }
-.menu-list button, .sheet-btns button {
-  min-height: 48px; text-align: left; padding: 0 16px; border-radius: 10px; cursor: pointer;
-  border: 1px solid var(--line); background: var(--hull-2); font-size: 16px;
-}
-.sheet-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.sheet-btns .danger { border-color: var(--rust); color: var(--rust); }
-.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.log li { font-family: var(--font-saga); font-size: 16px; line-height: 1.4; }
-.log .when { display: block; font-family: var(--font-sc); font-size: 12px; letter-spacing: 0.08em; color: var(--bone-dim); }
-.help { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--bone); }
-
-/* ---------- Norse ornament: runes, plaited bands, a painted runestone ---------- */
-.season-rune { font-family: var(--font-rune); font-size: 22px; line-height: 1; color: var(--ember); min-width: 0.9em; text-align: center; cursor: default; }
-.sep { font-family: var(--font-rune); color: var(--ochre); font-size: 15px; }
-.plait, .side::before { height: 12px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cg fill='none'%3E%3Cpath d='M0 9.4 C4 9.4 8 2.6 12 2.6' stroke='%230f181d' stroke-width='4.4'/%3E%3Cpath d='M0 9.4 C4 9.4 8 2.6 12 2.6' stroke='%23b4503a' stroke-width='2.4'/%3E%3Cpath d='M0 2.6 C4 2.6 8 9.4 12 9.4' stroke='%230f181d' stroke-width='4.4'/%3E%3Cpath d='M0 2.6 C4 2.6 8 9.4 12 9.4' stroke='%23b4503a' stroke-width='2.4'/%3E%3Cpath d='M12 9.4 C16 9.4 20 2.6 24 2.6' stroke='%230f181d' stroke-width='4.4'/%3E%3Cpath d='M12 9.4 C16 9.4 20 2.6 24 2.6' stroke='%23b4503a' stroke-width='2.4'/%3E%3Cpath d='M12 2.6 C16 2.6 20 9.4 24 9.4' stroke='%230f181d' stroke-width='4.4'/%3E%3Cpath d='M12 2.6 C16 2.6 20 9.4 24 9.4' stroke='%23b4503a' stroke-width='2.4'/%3E%3C/g%3E%3C/svg%3E") repeat-x left center / 24px 12px; }
-.side::before { content: ""; margin-bottom: 2px; opacity: 0.75; }
-.card-inner .plait { width: min(260px, 72%); }
-.t-hint:not(:empty)::before, .t-hint:not(:empty)::after { font-family: var(--font-rune); color: var(--ochre); }
-.t-hint:not(:empty)::before { content: "᛫ "; }
-.t-hint:not(:empty)::after { content: " ᛫"; }
-.stage::after { content: ""; position: absolute; inset: 4px; border: 1px solid var(--frame-line); border-radius: 10px; pointer-events: none; }
-.buy:not(.off) { box-shadow: inset 0 1px 0 var(--bevel-hi), inset 0 -2px 0 var(--bevel-lo); }
-.title-num { text-shadow: 0 -1px 0 var(--bevel-lo), 0 1px 0 var(--frame-line), 0 6px 50px var(--shadow); }
+/* The chapter's result, carved on a runestone. The stone keeps its shape: it is the picture, not the chrome. */
 .stone-wrap { width: min(400px, 100%); display: grid; gap: 14px; justify-items: center; text-align: center; }
 .stone {
   position: relative; width: 100%; padding: 76px 34px 46px;
@@ -287,118 +327,131 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--ember)
 .sb-head { fill: var(--ochre); stroke: var(--groove); stroke-width: 2px; vector-effect: non-scaling-stroke; }
 .sb-eye { fill: var(--groove); }
 .stone-inner { position: relative; display: grid; gap: 10px; }
-.stone-runes { font-family: var(--font-rune); font-size: 17px; letter-spacing: 0.35em; margin-right: -0.35em; color: var(--groove); text-shadow: 0 1px 0 var(--frame-line); }
-.stone .eyebrow { color: var(--bone); opacity: 0.85; }
-.stone h2 { margin: 0; font-family: var(--font-saga); font-weight: 500; font-size: 27px; line-height: 1.15; text-wrap: balance; text-shadow: 0 1px 0 var(--bevel-lo); }
-.stone .tally { text-align: left; }
-.stone .tally div { border-bottom: 1px solid var(--bevel-lo); box-shadow: 0 1px 0 var(--frame-line); }
-.stone .tally dt { color: var(--stone-dim); }
-.stone .tally .total { border-bottom: 0; box-shadow: none; }
-.stone .tally .total dt, .stone .tally .total dd { color: var(--bone); }
-.stone .tally .total dd { font-size: 26px; }
-.stone-wrap .note { color: var(--bone); text-shadow: 0 1px 8px var(--shadow); background: var(--chip-bg); padding: 6px 12px; border-radius: 10px; }
-.t-card.poster { place-items: stretch; }
-.poster-inner { width: min(560px, 100%); min-height: 100%; margin: 0 auto; display: grid; align-content: space-between; justify-items: center; gap: 24px; text-align: center; }
-.poster-top, .poster-bottom { display: grid; justify-items: center; gap: 10px; }
-.poster-top .plait { width: min(260px, 72%); }
-.plait.ink { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cg fill='none'%3E%3Cpath d='M0 9.4 C4 9.4 8 2.6 12 2.6' stroke='%23d66c48' stroke-width='4.4'/%3E%3Cpath d='M0 9.4 C4 9.4 8 2.6 12 2.6' stroke='%231f0c08' stroke-width='2.4'/%3E%3Cpath d='M0 2.6 C4 2.6 8 9.4 12 9.4' stroke='%23d66c48' stroke-width='4.4'/%3E%3Cpath d='M0 2.6 C4 2.6 8 9.4 12 9.4' stroke='%231f0c08' stroke-width='2.4'/%3E%3Cpath d='M12 9.4 C16 9.4 20 2.6 24 2.6' stroke='%23d66c48' stroke-width='4.4'/%3E%3Cpath d='M12 9.4 C16 9.4 20 2.6 24 2.6' stroke='%231f0c08' stroke-width='2.4'/%3E%3Cpath d='M12 2.6 C16 2.6 20 9.4 24 9.4' stroke='%23d66c48' stroke-width='4.4'/%3E%3Cpath d='M12 2.6 C16 2.6 20 9.4 24 9.4' stroke='%231f0c08' stroke-width='2.4'/%3E%3C/g%3E%3C/svg%3E"); }
-.poster .title-num { color: var(--ink); text-shadow: 0 1px 0 var(--ink-lift); }
-.poster .runes, .poster .title-sub { color: var(--ink); }
-.poster .title-sub { font-weight: 500; }
-.poster-bottom .title-note { color: var(--bone); max-width: 36ch; text-shadow: 0 1px 6px var(--shadow); }
+.stone-runes { font-size: 17px; letter-spacing: 0.35em; margin-right: -0.35em; color: var(--groove); text-shadow: 0 1px 0 var(--frame-line); overflow-wrap: anywhere; }
+.stone .eyebrow { color: var(--bone); }
+.stone h2 { margin: 0; font-size: 30px; text-wrap: balance; text-shadow: 0 1px 0 var(--bevel-lo); }
+.tally { margin: 0; display: grid; text-align: left; }
+.tally div { display: flex; justify-content: space-between; gap: 12px; padding-block: 7px; border-bottom: 1px solid var(--bevel-lo); box-shadow: 0 1px 0 var(--frame-line); }
+.tally dt { color: var(--stone-dim); }
+.tally dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tally .total { border-bottom: 0; box-shadow: none; padding-top: 10px; }
+.tally .total dt { color: var(--bone); font: 500 14px var(--font-sc); letter-spacing: 0.18em; text-transform: uppercase; }
+.tally .total dd { color: var(--bone); font-size: 26px; }
+.stone-wrap .note { color: var(--bone); background: var(--chip-bg); padding: 8px 12px; }
 
-/* ---------- chapters: goals, meters, the saga's choices ---------- */
-.goals { padding-block: 10px 12px; border-bottom: 1px solid var(--line); }
-.goals-t { margin: 0 0 6px; font-family: var(--font-sc); font-size: 14px; letter-spacing: 0.06em; color: var(--ember); }
-.goal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.goal-list li { position: relative; padding-left: 22px; font-size: 14.5px; line-height: 1.35; color: var(--bone); }
-.goal-list li::before { content: ""; position: absolute; left: 5px; top: 0.45em; width: 7px; height: 7px; border: 1.5px solid var(--bone-dim); border-radius: 50%; }
-.goal-list li.ok { color: var(--bone-dim); }
-.goal-list li.ok::before { top: 0.32em; width: 9px; height: 5px; border: 0; border-left: 2px solid var(--moss); border-bottom: 2px solid var(--moss); border-radius: 0; transform: rotate(-45deg); }
-.meter { display: grid; gap: 6px; padding-block: 12px; border-bottom: 1px solid var(--line); }
-.meter-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.meter-t { font-family: var(--font-saga); font-size: 17.5px; font-weight: 500; }
-.meter-w { font-family: var(--font-sc); font-size: 14px; letter-spacing: 0.06em; font-weight: 500; }
-.meter.good .meter-w { color: var(--moss); }
-.meter.bad .meter-w { color: var(--rust); }
-.mbar { position: relative; height: 8px; border-radius: 4px; background: var(--line); }
-.mbar i { display: block; height: 100%; border-radius: 4px; background: var(--bone-dim); transition: width 0.3s linear; }
-.meter.good .mbar i { background: var(--moss); }
-.meter.bad .mbar i { background: var(--rust); }
-.mbar .mark { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--rust); }
-.chip.good { color: var(--moss); border-color: var(--moss); }
-.ev-body { display: grid; gap: 10px; margin-block: 4px 18px; }
-.ev-body p { margin: 0; font-family: var(--font-saga); font-size: 17px; line-height: 1.45; color: var(--bone); }
-.ev-body p.saga-note { font-style: italic; font-size: 16px; color: var(--bone-dim); border-left: 2px solid var(--ochre); padding-left: 12px; }
-.ev-choices { display: flex; flex-wrap: wrap; gap: 10px; }
-.sheet-card .eyebrow { margin: 0 0 6px; }
-.log .log-ch { font-family: var(--font-sc); font-size: 14px; letter-spacing: 0.08em; color: var(--ember); padding-top: 8px; border-top: 1px solid var(--line); }
-.chapter-num { margin: 0; font-family: var(--font-sc); font-size: 16px; letter-spacing: 0.16em; color: var(--ink); }
-.title-name { font-family: var(--font-saga); font-weight: 500; font-size: clamp(46px, 12vw, 104px); line-height: 0.95; text-wrap: balance; color: var(--ink); text-shadow: 0 1px 0 var(--ink-lift); }
-.poster .runes { overflow-wrap: anywhere; text-align: center; }
-@media (max-width: 400px) { .tabs button { padding-inline: 8px; font-size: 15px; } }
+/* ---------- sheets: the saga's choices, the menu, the saga log ---------- */
+#sheet { position: fixed; inset: 0; z-index: 60; background: var(--scrim); display: grid; }
+.sheet-card {
+  width: 100%; height: 100%; max-height: 100%; overflow-y: auto;
+  background: var(--card-bg); border: 0; border-radius: 0;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 60px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+  padding-left: max(26px, env(safe-area-inset-left, 0px)); padding-right: max(26px, env(safe-area-inset-right, 0px));
+}
+.sheet-card .eyebrow { font-size: 14px; font-weight: 700; color: var(--ember); }
+.sheet-runes { margin: 8px 0 26px; font-size: 15px; letter-spacing: 0.4em; color: var(--bone-dim); overflow-wrap: anywhere; }
+.sheet-card h2 { margin: 0 0 22px; font-size: 44px; text-wrap: balance; }
+#sheet[data-mode="event"] .sheet-card h2 { font-size: 58px; }
+.sheet-card p { color: var(--bone-dim); font-size: 17px; line-height: 1.45; }
+.ev-body { display: grid; gap: 12px; margin-block: 0 26px; }
+.ev-body p { margin: 0; font: 400 20px/1.45 var(--font-saga); color: var(--bone); }
+.ev-body p.saga-note { font-size: 17px; color: var(--bone-dim); border-left: 2px solid var(--ember); padding-left: 14px; }
+.ev-choices { display: grid; border-top: 1px solid var(--line); }
+.ev-choices .tbtn { min-height: 64px; font-size: 18px; }
+.ev-choices .tbtn::after { content: "→"; font-family: var(--font-ui); font-size: 22px; color: var(--bone-dim); }
+.ev-choices .tbtn.saga::after { color: var(--ember); }
+.ev-choices .tbtn.violent::after { color: var(--rust); }
+.ev-choice-l { display: grid; gap: 4px; padding-block: 10px; }
+.ev-tag { font-size: 11.5px; letter-spacing: 0.16em; color: var(--ember); }
+.tbtn.violent .ev-tag { color: var(--rust); }
+.menu-list, .sheet-btns { display: grid; border-top: 1px solid var(--line); }
+.sheet-btns { margin-top: 22px; }
+.menu-list button, .sheet-btns button {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; padding: 0 2px;
+  border: 0; border-bottom: 1px solid var(--line); background: none; cursor: pointer; text-align: left;
+  font: 500 17px var(--font-ui); color: var(--bone);
+}
+.menu-list button::after, .sheet-btns button::after { content: "→"; color: var(--bone-dim); }
+.menu-list .danger, .sheet-btns .danger { color: var(--rust); }
+.log { list-style: none; margin: 0 0 0 5px; padding: 0 0 0 18px; border-left: 1px solid var(--line); display: grid; gap: 16px; }
+.log li { position: relative; font: 400 16px/1.45 var(--font-saga); color: var(--bone); }
+.log li::before { content: ""; position: absolute; left: -23px; top: 0.4em; width: 9px; height: 9px; background: var(--ember); }
+.log .when { display: block; margin-bottom: 2px; font-size: 13px; letter-spacing: 0.16em; color: var(--bone-dim); }
+.log .log-ch { padding-top: 10px; font: 700 14px var(--font-sc); letter-spacing: 0.18em; text-transform: uppercase; color: var(--ember); }
+.log .log-ch::before { display: none; }
+.help { margin: 0; padding-left: 20px; display: grid; gap: 10px; font-size: 16px; color: var(--bone); }
 
-/* ---------- wide screens: window left, ledger right ---------- */
+/* ---------- wide screens: the camp on the left, the ledger behind a rune rail on the right ---------- */
 @media (min-width: 900px) {
   #app {
-    max-width: 1240px; column-gap: 28px; padding-block: 18px 0;
-    grid-template-columns: minmax(0, 1.4fr) minmax(360px, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    grid-template-areas: "top side" "stage side" "saga side";
+    max-width: 1360px;
+    grid-template-columns: minmax(0, 1.45fr) minmax(420px, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
-  #top { grid-area: top; }
-  .stage { grid-area: stage; height: auto; min-height: 300px; }
-  .saga { grid-area: saga; height: 80px; margin-bottom: 18px; }
-  .saga-line { font-size: 18px; }
-  .side { grid-area: side; }
+  .camp { margin-right: 0; }
+  .stage { height: 100%; }
+  .saga-line { font-size: 19px; }
+  .side { grid-template-columns: 88px minmax(0, 1fr); border-left: 1px solid var(--line); }
+  .tabs {
+    position: static; z-index: auto; height: auto; padding: 16px 0 0;
+    display: flex; flex-direction: column;
+    background: var(--night); border-top: 0; border-right: 1px solid var(--line);
+  }
+  .tabs button { min-height: 80px; border-left: 2px solid transparent; }
+  .tabs button.on { border-left-color: var(--ember); background: var(--hull-2); }
+  .panel { padding: 10px 28px 32px; }
+  #sheet { place-items: center; }
+  .sheet-card { width: min(680px, 92%); height: auto; max-height: 88%; border: 1px solid var(--line); padding: 44px 40px 32px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .saga-line.in, .t-text.in, .floater, .t-hint { animation: none; }
+  .tbtn, .menu-list button, .sheet-btns button { transition: none; }
 }
 </style>
 
 <div id="app">
-  <header id="top">
-    <div class="season-row">
-      <span class="season-rune" id="seasonRune" title="ᛋ sól: the sun rune">ᛋ</span>
-      <span class="season-name" id="seasonName">Summer</span>
-      <span class="sep" aria-hidden="true">᛫</span>
-      <span class="season-year" id="seasonYear">Year 1</span>
-      <span class="spacer"></span>
-      <button class="icon-btn" id="soundBtn" type="button" aria-pressed="true" aria-label="Sound"></button>
-      <button class="icon-btn" id="menuBtn" type="button" aria-label="Menu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-      </button>
+  <div class="camp" id="camp">
+    <header id="top">
+      <div class="season-row">
+        <span class="season-rune" id="seasonRune" title="ᛋ sól: the sun rune">ᛋ</span>
+        <span class="season-name" id="seasonName">Summer</span>
+        <span class="sep" aria-hidden="true">᛫</span>
+        <span class="season-year" id="seasonYear">Year 1</span>
+        <span class="spacer"></span>
+        <button class="icon-btn" id="soundBtn" type="button" aria-pressed="true" aria-label="Sound"></button>
+        <button class="icon-btn" id="menuBtn" type="button" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+      <div class="res-row">
+        <div class="res" id="res-timber"><span class="lbl">Timber</span><span class="rune" aria-hidden="true">ᛒ</span><b>0</b><i></i></div>
+        <div class="res" id="res-food"><span class="lbl">Food</span><span class="rune" aria-hidden="true">ᚠ</span><b>0</b><i></i></div>
+        <div class="res" id="res-iron" hidden><span class="lbl">Iron</span><span class="rune" aria-hidden="true">ᛁ</span><b>0</b><i></i></div>
+        <div class="res" id="res-grapes" hidden><span class="lbl">Grapes</span><span class="rune" aria-hidden="true">ᚢ</span><b>0</b><i></i></div>
+        <div class="res" id="res-furs" hidden><span class="lbl">Furs</span><span class="rune" aria-hidden="true">ᚴ</span><b>0</b><i></i></div>
+        <div class="res" id="res-dairy" hidden><span class="lbl">Dairy</span><span class="rune" aria-hidden="true">ᚬ</span><b>0</b><i></i></div>
+        <div class="res" id="res-crew"><span class="lbl">Idle</span><span class="rune" aria-hidden="true">ᛘ</span><b>35</b><i></i></div>
+      </div>
+      <div class="chips" id="chips"></div>
+    </header>
+    <div class="stage" id="stage">
+      <canvas id="scene" role="img" aria-label="The camp, with your men at work."></canvas>
+      <div class="floaters" id="floaters" aria-hidden="true"></div>
     </div>
-    <div class="res-row">
-      <div class="res" id="res-timber"><span class="lbl">Timber</span><b>0</b><i></i></div>
-      <div class="res" id="res-food"><span class="lbl">Food</span><b>0</b><i></i></div>
-      <div class="res" id="res-iron" hidden><span class="lbl">Iron</span><b>0</b><i></i></div>
-      <div class="res" id="res-grapes" hidden><span class="lbl">Grapes</span><b>0</b><i></i></div>
-      <div class="res" id="res-furs" hidden><span class="lbl">Furs</span><b>0</b><i></i></div>
-      <div class="res" id="res-dairy" hidden><span class="lbl">Dairy</span><b>0</b><i></i></div>
-      <div class="res" id="res-crew"><span class="lbl">Idle</span><b>35</b><i></i></div>
+    <div class="camp-foot">
+      <div class="hint-chip" id="hint"></div>
+      <div class="saga" id="saga" role="button" tabindex="0" aria-label="Read the saga so far">
+        <p class="saga-line" id="sagaLine" aria-live="polite"></p>
+      </div>
     </div>
-  </header>
-
-  <div class="stage" id="stage">
-    <canvas id="scene" role="img" aria-label="The camp, with your men at work."></canvas>
-    <div class="chips" id="chips"></div>
-    <div class="hint-chip" id="hint"></div>
-    <div class="floaters" id="floaters" aria-hidden="true"></div>
-  </div>
-
-  <div class="saga" id="saga" role="button" tabindex="0" aria-label="Read the saga so far">
-    <p class="saga-line" id="sagaLine" aria-live="polite"></p>
   </div>
 
   <div class="side">
     <nav class="tabs" id="tabs" role="tablist" aria-label="Camp">
-      <button type="button" role="tab" data-tab="work" id="tab-work">Work<span class="dot"></span></button>
-      <button type="button" role="tab" data-tab="build" id="tab-build">Build<span class="dot"></span></button>
-      <button type="button" role="tab" data-tab="explore" id="tab-explore" hidden>Explore<span class="dot"></span></button>
-      <button type="button" role="tab" data-tab="ship" id="tab-ship" hidden>Ship<span class="dot"></span></button>
-      <button type="button" role="tab" data-tab="people" id="tab-people" hidden>People<span class="dot"></span></button>
+      <button type="button" role="tab" data-tab="work" id="tab-work"><span class="tab-rune" aria-hidden="true">ᛘ<span class="dot"></span></span><span class="tab-label">Work</span></button>
+      <button type="button" role="tab" data-tab="build" id="tab-build"><span class="tab-rune" aria-hidden="true">ᚼ<span class="dot"></span></span><span class="tab-label">Build</span></button>
+      <button type="button" role="tab" data-tab="explore" id="tab-explore" hidden><span class="tab-rune" aria-hidden="true">ᚱ<span class="dot"></span></span><span class="tab-label">Explore</span></button>
+      <button type="button" role="tab" data-tab="ship" id="tab-ship" hidden><span class="tab-rune" aria-hidden="true">ᛚ<span class="dot"></span></span><span class="tab-label">Ship</span></button>
+      <button type="button" role="tab" data-tab="people" id="tab-people" hidden><span class="tab-rune" aria-hidden="true">ᚠ<span class="dot"></span></span><span class="tab-label">People</span></button>
     </nav>
     <section class="panel" id="panel" role="tabpanel"></section>
   </div>
@@ -1962,7 +2015,7 @@ function drawRings(rd) {
   }
   if (label) {
     c.fillStyle = '#f1e3c8'; c.textAlign = 'center'; c.textBaseline = 'top';
-    c.font = `500 ${Math.round(clamp(R0 * 0.2, 20, 40))}px Alegreya, Georgia, serif`;
+    c.font = `700 ${Math.round(clamp(R0 * 0.2, 20, 40))}px "Familjen Grotesk", system-ui, sans-serif`;
     c.fillText('Ring ' + label, cx, cy + R0 * 1.14);
   }
 }
@@ -2045,7 +2098,7 @@ const DEV = { speed: 1 };
 let S = newState();
 const els = {
   seasonName: $('#seasonName'), seasonYear: $('#seasonYear'), seasonRune: $('#seasonRune'), soundBtn: $('#soundBtn'), menuBtn: $('#menuBtn'),
-  stage: $('#stage'), scene: $('#scene'), chips: $('#chips'), hint: $('#hint'), floaters: $('#floaters'),
+  top: $('#top'), stage: $('#stage'), scene: $('#scene'), chips: $('#chips'), hint: $('#hint'), floaters: $('#floaters'),
   saga: $('#saga'), sagaLine: $('#sagaLine'), tabs: $('#tabs'), panel: $('#panel'),
   theater: $('#theater'), tcanvas: $('#tcanvas'), tYear: $('#tYear'), tText: $('#tText'), tActions: $('#tActions'), tHint: $('#tHint'), tCard: $('#tCard'),
   sheet: $('#sheet'), sheetCard: $('#sheetCard'),
@@ -2105,7 +2158,7 @@ function tabItems(tab) {
       if (!j.unlocked(s)) continue;
       const cost = jobCost(s, j), idle = idleOf(s);
       items.push({ id: 'job-' + j.id, title: j.name, count: String(s.jobs[j.id] || 0), desc: jobDesc(s, j), btn: 'Hire',
-        cost: idle > 0 ? cost + ' timber' : 'no idle people', on: idle > 0 && s.timber >= cost, act: 'hire', arg: j.id });
+        cost: idle > 0 ? `Hire one more for ${cost} timber` : 'No one is idle to hire', on: idle > 0 && s.timber >= cost, act: 'hire', arg: j.id });
     }
   } else if (tab === 'build') {
     const sh = clamp(shelterOf(s), 0, s.crew);
@@ -2185,6 +2238,18 @@ function tabItems(tab) {
   }
   return items;
 }
+// Every ledger row carries a rune: the one for what it makes, or the one for its tab.
+const ROW_RUNES = { wood: 'ᛒ', fish: 'ᚠ', smith: 'ᛁ', grape: 'ᚢ', herd: 'ᚬ' };
+const TAB_RUNES = { work: 'ᛘ', build: 'ᚼ', explore: 'ᚱ', ship: 'ᛚ', people: 'ᚠ' };
+function runeFor(i) {
+  if (i.act === 'hire') return ROW_RUNES[i.arg] || TAB_RUNES.work;
+  if (i.act === 'trade') return 'ᚴ';
+  if (i.act === 'feast') return 'ᚠ';
+  if (i.act === 'help') return 'ᛒ';
+  if (i.act === 'ship' || i.id.indexOf('ship') === 0) return TAB_RUNES.ship;
+  if (i.act === 'explore' || i.id === 'trip') return TAB_RUNES.explore;
+  return TAB_RUNES[UI.tab] || TAB_RUNES.work;
+}
 function rowHTML(i) {
   if (i.kind === 'goals') return '<div class="goals" data-id="goals"><p class="goals-t"></p><ul class="goal-list"></ul></div>';
   if (i.kind === 'meter') return `<div class="meter" data-id="${i.id}"><div class="meter-top"><span class="meter-t">${esc(i.title)}</span><b class="meter-w"></b></div><div class="mbar"><i></i>${i.mark != null ? `<span class="mark" style="left:${i.mark * 100}%"></span>` : ''}</div><p class="row-desc"></p></div>`;
@@ -2199,7 +2264,12 @@ function rowHTML(i) {
   if (i.kind === 'sail') return `<div class="sail" data-id="sail"><p class="row-desc" data-c="note"></p><div class="sail-btns">${UI.sailConfirm
     ? '<button type="button" class="buy big" data-act="sail-yes"><span class="b-label">Sail for Greenland</span><span class="b-cost">This ends the chapter</span></button><button type="button" class="ghost" data-act="sail-no">Not yet</button>'
     : '<button type="button" class="buy big" data-act="sail"><span class="b-label">Sail home</span><span class="b-cost"></span></button>'}</div></div>`;
-  return `<div class="row" data-id="${i.id}"><div class="row-main"><div class="row-title"><span>${esc(i.title)}</span>${i.count != null ? '<span class="count"></span>' : ''}<span class="new" hidden>New</span></div><p class="row-desc"></p>${i.progress != null ? '<div class="bar"><i></i></div>' : ''}</div>${i.btn ? `<button type="button" class="buy" data-act="${i.act}" data-arg="${i.arg || ''}"><span class="b-label">${esc(i.btn)}</span><span class="b-cost"></span></button>` : ''}</div>`;
+  const rune = `<span class="row-rune" aria-hidden="true">${runeFor(i)}</span>`;
+  if (i.act === 'hire') {
+    return `<div class="row job" data-id="${i.id}">${rune}<div class="row-main"><div class="row-title"><span>${esc(i.title)}</span><span class="new" hidden>New</span></div><p class="row-desc"></p><p class="row-cost b-cost"></p></div>`
+      + `<div class="row-act"><span class="count"></span><button type="button" class="buy plus" data-act="hire" data-arg="${i.arg}" aria-label="Hire one more: ${esc(i.title)}"><span class="b-label" aria-hidden="true">+</span></button></div></div>`;
+  }
+  return `<div class="row" data-id="${i.id}">${rune}<div class="row-main"><div class="row-title"><span>${esc(i.title)}</span>${i.count != null ? '<span class="count"></span>' : ''}<span class="new" hidden>New</span></div><p class="row-desc"></p>${i.progress != null ? '<div class="bar"><i></i></div>' : ''}</div>${i.btn ? `<button type="button" class="buy" data-act="${i.act}" data-arg="${i.arg || ''}"><span class="b-label">${esc(i.btn)}</span><span class="b-cost"></span></button>` : '<span></span>'}</div>`;
 }
 function buildPanel(items) {
   els.panel.innerHTML = items.map(rowHTML).join('');
@@ -2361,6 +2431,20 @@ function floater(x, y, text) {
   els.floaters.appendChild(d);
   if (reduceMotion) setTimeout(() => d.remove(), 700);
 }
+// The camp is drawn in the strip between the season overlay and the saga overlay, so the halls and the
+// woodcutters stay in view. The sky runs on under the season, and the ground under the saga.
+const BAND = { oy: 0, h: 0 };
+function measureFoot() {
+  const lh = parseFloat(getComputedStyle(els.sagaLine).lineHeight) || 25;
+  UI.footReserve = 36 + 17 + 8 + 3 * lh + 16;
+}
+function stageBand() {
+  const H = sceneR.H, oy = clamp(els.top.offsetHeight - 40, 0, H * 0.4);
+  const h = Math.max(H * 0.45, H - oy - Math.max(0, (UI.footReserve || 0) - 30));
+  if (!BAND.h) { BAND.oy = oy; BAND.h = h; }
+  BAND.oy += (oy - BAND.oy) * 0.15; BAND.h += (h - BAND.h) * 0.15;
+  return BAND;
+}
 // The men chop on their own. Every few seconds a tree near them shakes and the timber they cut floats up.
 const WB = { acc: 0, next: 2.5 };
 function workerBeat(dt) {
@@ -2374,9 +2458,9 @@ function workerBeat(dt) {
   const tr = near[Math.floor(Math.random() * near.length)];
   if (!tr) return;
   tr.shake = 0.6;
-  const x = tr.x * sceneR.W;
-  emit(sceneR, x, (tr.base - tr.h * 0.15) * sceneR.H, reduceMotion ? 2 : 5, CHIP_COLORS);
-  floater(x, (tr.base - tr.h * 1.08) * sceneR.H, '+' + Math.round(cut));
+  const x = tr.x * sceneR.W, B = BAND.h ? BAND : { oy: 0, h: sceneR.H };
+  emit(sceneR, x, (tr.base - tr.h * 0.15) * B.h, reduceMotion ? 2 : 5, CHIP_COLORS);
+  floater(x, B.oy + (tr.base - tr.h * 1.08) * B.h, '+' + Math.round(cut));
   Snd.work();
 }
 function doAction(btn) {
@@ -2397,7 +2481,7 @@ function openSheet(kind) {
   delete els.sheet.dataset.mode;
   if (kind === 'menu') {
     card.setAttribute('aria-label', 'Menu');
-    card.innerHTML = '<h2>Menu</h2><div class="menu-list"><button type="button" data-m="log">The saga so far</button><button type="button" data-m="help">How to play</button><button type="button" data-m="restart">Start a new saga</button><button type="button" data-m="close">Back to the camp</button></div>';
+    card.innerHTML = sheetHead() + '<h2>Menu</h2><div class="menu-list"><button type="button" data-m="log">The saga so far</button><button type="button" data-m="help">How to play</button><button type="button" class="danger" data-m="restart">Start a new saga</button><button type="button" data-m="close">Back to the camp</button></div>';
   } else if (kind === 'log') {
     card.setAttribute('aria-label', 'The saga so far');
     let lastCh = 0;
@@ -2406,10 +2490,10 @@ function openSheet(kind) {
       lastCh = e.ch || lastCh;
       return `${head}<li><span class="when">${esc(e.when)}</span>${esc(e.text)}</li>`;
     }).join('');
-    card.innerHTML = `<h2>The saga so far</h2><ol class="log">${items || '<li>Nothing has happened yet.</li>'}</ol><div class="sheet-btns"><button type="button" data-m="close">Close</button></div>`;
+    card.innerHTML = `${sheetHead()}<h2>The saga so far</h2><ol class="log">${items || '<li>Nothing has happened yet.</li>'}</ol><div class="sheet-btns"><button type="button" data-m="close">Close</button></div>`;
   } else if (kind === 'help') {
     card.setAttribute('aria-label', 'How to play');
-    card.innerHTML = `<h2>How to play</h2><ul class="help">
+    card.innerHTML = `${sheetHead()}<h2>How to play</h2><ul class="help">
       <li>Your people do the work. Give them jobs in the Work tab: woodcutters cut the timber that pays for almost everything, and fishers keep everyone fed.</li>
       <li>The seasons turn on their own. Before winter, build turf halls so everyone has a roof, and put away food and firewood.</li>
       <li>Each chapter is one voyage from the Saga of the Greenlanders, with its own goals at the top of the Work tab.</li>
@@ -2419,13 +2503,20 @@ function openSheet(kind) {
       <div class="sheet-btns"><button type="button" data-m="close">Back to the camp</button></div>`;
   } else if (kind === 'restart') {
     card.setAttribute('aria-label', 'Start a new saga');
-    card.innerHTML = '<h2>Start a new saga?</h2><p>This erases all four chapters and starts again on the beach with Leif.</p><div class="sheet-btns"><button type="button" class="danger" data-m="restart-yes">Erase and restart</button><button type="button" data-m="close">Keep playing</button></div>';
+    card.innerHTML = sheetHead() + '<h2>Start a new saga?</h2><p>This erases all four chapters and starts again on the beach with Leif.</p><div class="sheet-btns"><button type="button" class="danger" data-m="restart-yes">Erase and restart</button><button type="button" data-m="close">Keep playing</button></div>';
   }
   els.sheet.hidden = false;
   if (kind === 'log') card.scrollTop = card.scrollHeight;
   const first = card.querySelector('button'); if (first) first.focus({ preventScroll: true });
 }
 function closeSheet() { if (els.sheet.dataset.mode === 'event') return; els.sheet.hidden = true; }
+// The saga's own path is marked, so the colour of the arrow means something. Violence is marked in rust.
+const CHOICE_TAG = { attack: 'violent', stop: 'violent', refuse: 'saga', evict: 'saga', ask: 'saga' };
+const sheetHead = () => { const C = chap(S); return `<p class="eyebrow">${C.numeral} · ${esc(C.title)}</p><p class="sheet-runes" aria-hidden="true">${C.runes}</p>`; };
+function choiceHTML(ch) {
+  const tag = CHOICE_TAG[ch.id], cls = tag ? (tag === 'violent' ? ' saga violent' : ' saga') : '';
+  return `<button type="button" class="tbtn${cls}" data-ev="${ch.id}"><span class="ev-choice-l"><span>${esc(ch.label)}</span>${tag ? '<span class="ev-tag">As in the saga</span>' : ''}</span></button>`;
+}
 const isSagaNote = t => /^That is not how the saga tells it|^In the saga/.test(t);
 function showEvent() {
   const ev = EVENTS[S.pending];
@@ -2433,8 +2524,8 @@ function showEvent() {
   UI.eventShown = S.pending;
   const card = els.sheetCard;
   card.setAttribute('aria-label', ev.title);
-  card.innerHTML = `<p class="eyebrow">${esc(chap(S).title)}</p><h2>${esc(ev.title)}</h2><div class="ev-body">${ev.text.map(t => `<p>${esc(t)}</p>`).join('')}</div>
-    <div class="ev-choices">${ev.choices.map((ch, k) => `<button type="button" class="tbtn${k === 0 ? ' primary' : ''}" data-ev="${ch.id}">${esc(ch.label)}</button>`).join('')}</div>`;
+  card.innerHTML = `${sheetHead()}<h2>${esc(ev.title)}</h2><div class="ev-body">${ev.text.map(t => `<p>${esc(t)}</p>`).join('')}</div>
+    <div class="ev-choices">${ev.choices.map(choiceHTML).join('')}</div>`;
   els.sheet.dataset.mode = 'event'; els.sheet.hidden = false;
   Snd.event();
   const b = card.querySelector('button'); if (b) b.focus({ preventScroll: true });
@@ -2443,7 +2534,7 @@ function chooseEvent(id) {
   const ev = EVENTS[S.pending];
   if (!ev) return;
   const out = resolveEvent(S, id); save();
-  els.sheetCard.innerHTML = `<p class="eyebrow">${esc(chap(S).title)}</p><h2>${esc(ev.title)}</h2><div class="ev-body">${out.map(t => `<p${isSagaNote(t) ? ' class="saga-note"' : ''}>${esc(t)}</p>`).join('')}</div>
+  els.sheetCard.innerHTML = `${sheetHead()}<h2>${esc(ev.title)}</h2><div class="ev-body">${out.map(t => `<p${isSagaNote(t) ? ' class="saga-note"' : ''}>${esc(t)}</p>`).join('')}</div>
     <div class="ev-choices"><button type="button" class="tbtn primary" data-ev="done">Continue</button></div>`;
   UI.eventShown = 'result';
   if (out.length) { UI.queue.length = 0; els.sagaLine.textContent = out[0]; UI.hasLine = true; UI.shownAt = performance.now(); }
@@ -2504,19 +2595,16 @@ function showTitle() {
   UI.paused = true;
   Theater.open('title'); Theater.beats = []; clearStage();
   const hasSave = S.ch > 1 || S.t > S.t0 + 0.5;
-  showCard(`<div class="poster-inner"><div class="poster-top"><div class="plait ink" aria-hidden="true"></div><div class="title-num">1021</div><div class="runes" aria-hidden="true">ᚢᛁᚾᛚᛅᚾᛏ</div><div class="plait ink" aria-hidden="true"></div>
-    <p class="title-sub">A small saga of Vinland</p></div>
-    <div class="poster-bottom"><div class="t-btns">${hasSave ? '<button type="button" class="tbtn primary" data-t="continue">Continue</button><button type="button" class="tbtn" data-t="new">New saga</button>' : '<button type="button" class="tbtn primary" data-t="begin">Go ashore</button>'}</div>
-    <p class="title-note">${hasSave ? `You are in chapter ${chap(S).numeral}: ${esc(chap(S).title.replace('The saga of ', ''))}.` : 'Four voyages from the sagas. Best with sound on.'}</p></div></div>`, 'poster');
+  showCard(`<div class="poster-inner"><div class="poster-top"><div class="runes" aria-hidden="true">ᚢᛁᚾᛚᛅᚾᛏ</div></div>
+    <div class="poster-bottom"><p class="title-kicker">A saga in four voyages</p><h1 class="title-num">1021</h1><div class="t-btns">${hasSave ? '<button type="button" class="tbtn primary" data-t="continue">Continue</button><button type="button" class="tbtn" data-t="new">New saga</button>' : '<button type="button" class="tbtn primary" data-t="begin">Go ashore</button>'}</div>
+    <p class="title-note">${hasSave ? `You are in chapter ${chap(S).numeral}: ${esc(chap(S).title.replace('The saga of ', ''))}.` : 'Best with sound on.'}</p></div></div>`, 'poster');
 }
 function showChapterCard() {
   UI.paused = true;
   const C = chap(S);
   Theater.open('chapter'); Theater.beats = []; clearStage();
-  showCard(`<div class="poster-inner"><div class="poster-top"><div class="plait ink" aria-hidden="true"></div>
-    <p class="chapter-num">Chapter ${C.numeral}</p><div class="title-name">${esc(C.leader)}</div><div class="runes" aria-hidden="true">${C.runes}</div>
-    <div class="plait ink" aria-hidden="true"></div><p class="title-sub">${esc(C.blurb)}</p></div>
-    <div class="poster-bottom"><div class="t-btns"><button type="button" class="tbtn primary" data-t="begin">Go ashore</button></div>
+  showCard(`<div class="poster-inner"><div class="poster-top"><div class="runes" aria-hidden="true">${C.runes}</div></div>
+    <div class="poster-bottom"><p class="chapter-num">Chapter ${C.numeral}</p><h1 class="title-name">${esc(C.leader)}</h1><p class="title-sub">${esc(C.blurb)}</p><div class="t-btns"><button type="button" class="tbtn primary" data-t="begin">Go ashore</button></div>
     <p class="title-note">Your saga so far: ${S.renownTotal} renown. It bought this crew better supplies.</p></div></div>`, 'poster');
 }
 function beginCamp() {
@@ -2683,9 +2771,8 @@ function finalChop() {
 function showEnd() {
   S.phase = 'done'; save();
   Theater.scene = 'end'; clearStage();
-  showCard(`<div class="poster-inner"><div class="poster-top"><div class="plait ink" aria-hidden="true"></div><div class="title-num">1021</div><div class="runes" aria-hidden="true">ᚢᛁᚾᛚᛅᚾᛏ</div><div class="plait ink" aria-hidden="true"></div>
-    <p class="title-sub">A small saga of Vinland</p></div>
-    <div class="poster-bottom"><p class="title-note">Your saga: ${S.renownTotal} renown, over four voyages. Thanks for playing.</p>
+  showCard(`<div class="poster-inner"><div class="poster-top"><div class="runes" aria-hidden="true">ᚢᛁᚾᛚᛅᚾᛏ</div></div>
+    <div class="poster-bottom"><p class="title-kicker">A saga in four voyages</p><h1 class="title-num">1021</h1><p class="title-note">Your saga: ${S.renownTotal} renown, over four voyages. Thanks for playing.</p>
     <div class="t-btns"><button type="button" class="tbtn primary" data-t="again">Play again</button></div></div></div>`, 'poster');
 }
 function newSaga() {
@@ -2764,9 +2851,11 @@ function frame(now) {
   Snd.music();
   if (els.theater.hidden) {
     if (live && !UI.eventShown) workerBeat(dt);
-    const V = campView(S, now / 1000, dt);
-    sceneR.c.clearRect(0, 0, sceneR.W, sceneR.H);
-    drawCamp(sceneR, V, sceneR.W, sceneR.H);
+    const V = campView(S, now / 1000, dt), c = sceneR.c, B = stageBand();
+    c.clearRect(0, 0, sceneR.W, sceneR.H);
+    if (B.oy > 0) { c.fillStyle = rgb(V.pal.skyTop); c.fillRect(0, 0, sceneR.W, B.oy + 1); }
+    c.fillStyle = rgb(V.pal.landLo); c.fillRect(0, B.oy + B.h - 1, sceneR.W, sceneR.H - B.oy - B.h + 1);
+    c.save(); c.translate(0, B.oy); drawCamp(sceneR, V, sceneR.W, B.h); c.restore();
     if (V.ravens && live) sayOnce(S, 'ravens', true, RAVEN_LINES[S.ch]);
   } else renderTheater(dt);
   uiAcc += dt;
@@ -2814,6 +2903,9 @@ function start(data) {
   if (data && data.tab) UI.tab = data.tab;
   sceneR = makeRenderer(els.scene);
   theaterR = makeRenderer(els.tcanvas);
+  measureFoot();
+  window.addEventListener('resize', measureFoot);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureFoot);
   if (S.log.length) { els.sagaLine.textContent = S.log[S.log.length - 1].text; UI.hasLine = true; }
   if (S.phase === 'summary' || S.phase === 'epilogue' || S.phase === 'done') { Theater.open('voyage'); showSummary(); }
   else if (hot && S.t > S.t0 + 0.5) { UI.paused = false; }
