@@ -1,0 +1,14 @@
+{
+  "name": "emporos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A pixel-art trading game in nine voyages from Rhodes, 290 BC. Chapter I is playable.",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "sim": "node tests/sim.js",
+    "test": "node tests/play.js"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

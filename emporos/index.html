@@ -1,0 +1,2868 @@
+<!doctype html>
+<!-- Generated from src/game.html by tools/build.mjs. Edit the source, then run: node tools/build.mjs -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>
+<title>Emporos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A pixel-art trading game. A young Rhodian trader sails from Rhodes to Halicarnassus and back, in 290 BC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,600;1,400&family=Pixelify+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  /* Layout: a pixel-art window onto the harbour or the sea fills the top of the screen, like the picture on a painted cup.
+     The trader's ledger sits below it, with tabs pinned to the bottom on phones; wide screens put the two side by side.
+     One look: black-glaze ground, terracotta and bone, Aegean blue for water. */
+  --glaze: #16100c;
+  --glaze-2: #201711;
+  --glaze-3: #2c2018;
+  --line: #4b3727;
+  --line-soft: #34261b;
+  --clay: #d97b46;
+  --clay-hi: #f2a36d;
+  --clay-deep: #9e4f28;
+  --on-clay: #1c0f07;
+  --bone: #f2e6cb;
+  --bone-dim: #bba887;
+  --aegean: #66b8db;
+  --olive: #b8c468;
+  --wine: #ec6f80;
+  --gold: #eac05a;
+  --scrim: rgba(16, 11, 8, 0.9);
+  --scrim-soft: rgba(16, 11, 8, 0.66);
+  --scrim-clear: rgba(16, 11, 8, 0);
+  --font-pixel: "Pixelify Sans", ui-monospace, "Courier New", monospace;
+  --font-story: "Literata", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html { height: 100%; box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; font-variant-ligatures: none !important; }   /* the pixel face draws "fi" as one broken glyph, and every font shorthand would turn ligatures back on */
+body {
+  height: 100%; margin: 0; overflow: hidden;
+  background: var(--glaze); color: var(--bone);
+  font: 16px/1.5 var(--font-story);
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; border-radius: 0; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
+
+#app {
+  height: 100%; max-width: 640px; margin: 0 auto;
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto;
+  background: var(--glaze);
+}
+
+/* ---------- the window: purse and place across the sky, the story across the foot ---------- */
+.stage {
+  position: relative; height: clamp(230px, 40vh, 380px); overflow: hidden; background: #2a3a5a;
+  user-select: none; -webkit-user-select: none; touch-action: manipulation; transition: height 0.25s ease;
+}
+@supports (height: 1dvh) { .stage { height: clamp(230px, 40dvh, 380px); } }
+#app.compact .stage { height: 104px; }
+#scene { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: block; }
+.hud {
+  position: absolute; z-index: 3; top: 0; left: 0; right: 0; pointer-events: none;
+  padding-top: 8px; padding-bottom: 26px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(to bottom, var(--scrim-soft) 0, var(--scrim-soft) 62%, var(--scrim-clear) 100%);
+}
+.hud-row { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.purse { display: flex; align-items: center; gap: 7px; font: 700 24px/1 var(--font-pixel); font-variant-numeric: tabular-nums; text-shadow: 2px 2px 0 var(--glaze); }
+.purse img { width: 22px; height: 22px; }
+.purse .unit { font-size: 14px; font-weight: 500; color: var(--bone-dim); align-self: flex-end; padding-bottom: 2px; }
+.purse b { transition: color 0.3s; }
+.purse.up b { color: var(--olive); }
+.purse.down b { color: var(--clay-hi); }
+.hud-where { font: 500 13px/1.2 var(--font-pixel); color: var(--bone); letter-spacing: 0.07em; text-transform: uppercase; text-shadow: 1px 1px 0 var(--glaze); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spacer { flex: 1; }
+.icon-btn {
+  pointer-events: auto; flex: none; width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer; padding: 0;
+  border: 2px solid var(--line); background: var(--scrim); color: var(--bone);
+}
+.icon-btn svg { width: 22px; height: 22px; shape-rendering: crispEdges; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 12px/1.2 var(--font-pixel); padding: 4px 7px; background: var(--scrim); border: 1px solid var(--line-soft); font-variant-numeric: tabular-nums; }
+.chip.bad { color: var(--wine); border-color: var(--wine); }
+.chip.good { color: var(--olive); }
+.chip.water { color: var(--aegean); }
+.chip.food { color: var(--gold); }
+.hotspots { position: absolute; inset: 0; z-index: 2; }
+.hotspot { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.hotspot:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.banner {
+  position: absolute; z-index: 3; left: 0; right: 0; top: 52%; text-align: center; pointer-events: none;
+  font: 700 clamp(26px, 8vw, 44px)/1 var(--font-pixel); letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--bone); text-shadow: 3px 3px 0 var(--glaze); opacity: 0; transition: opacity 0.7s;
+}
+.banner small { display: block; margin-top: 8px; font-size: 14px; font-weight: 500; letter-spacing: 0.14em; color: var(--gold); }
+.banner.on { opacity: 1; }
+.strip { margin-top: 6px; max-width: 38em; pointer-events: auto; cursor: pointer; }
+.strip p { margin: 0; font: 15px/1.42 var(--font-story); min-height: 2.84em; text-shadow: 1px 1px 0 var(--glaze), 0 0 6px var(--glaze); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.strip p.in { animation: lineIn 0.5s ease-out; }
+.strip p.bad { color: var(--clay-hi); }
+.strip p.good { color: var(--olive); }
+@keyframes lineIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+#app.compact .strip, #app.compact .chips { display: none; }
+.meander { height: 14px; background-color: var(--glaze); background-repeat: repeat-x; background-size: 12px 14px; }
+
+/* ---------- the ledger ---------- */
+.panel {
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding-block: 14px 30px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.place { margin: 0; font: 700 28px/1.05 var(--font-pixel); letter-spacing: 0.03em; text-wrap: balance; }
+.sub { margin: 5px 0 0; font: 500 13px/1.3 var(--font-pixel); color: var(--bone-dim); letter-spacing: 0.06em; text-transform: uppercase; }
+.sec {
+  margin: 24px 0 10px; display: flex; align-items: center; gap: 10px;
+  font: 600 13px/1 var(--font-pixel); letter-spacing: 0.14em; text-transform: uppercase; color: var(--clay);
+}
+.sec::after { content: ""; flex: 1; height: 2px; background: var(--line-soft); }
+.goal { margin: 12px 0; padding: 10px 12px; border-left: 4px solid var(--clay); background: var(--glaze-2); font-size: 15px; }
+.goal.warn { border-left-color: var(--wine); }
+.journal { margin: 12px 0 4px; }
+.journal p { margin: 0 0 8px; font-size: 15px; }
+.journal p.bad { color: var(--clay-hi); }
+.note { margin: 8px 0; font-size: 14px; color: var(--bone-dim); }
+.btn {
+  min-height: 44px; padding: 10px 14px; cursor: pointer; text-align: center;
+  border: 2px solid var(--line); background: var(--glaze-2); color: var(--bone);
+  font: 500 15px/1.15 var(--font-pixel);
+  box-shadow: inset -2px -3px 0 rgba(0, 0, 0, 0.35), inset 2px 2px 0 rgba(255, 240, 220, 0.07);
+}
+.btn:active { box-shadow: inset 2px 3px 0 rgba(0, 0, 0, 0.35); }
+.btn.primary { background: var(--clay); border-color: var(--clay-deep); color: var(--on-clay); font-weight: 700; }
+.btn.wide { width: 100%; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn small { display: block; margin-top: 3px; font: 400 12px/1.25 var(--font-pixel); opacity: 0.85; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btns .btn { flex: 1 1 140px; }
+.stack { display: grid; gap: 8px; }
+
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 8px; }
+.person {
+  display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 12px; row-gap: 2px; align-items: center;
+  min-height: 70px; padding: 10px; text-align: left; cursor: pointer;
+  border: 2px solid var(--line-soft); background: var(--glaze-2);
+}
+.person img { grid-row: span 3; width: 48px; height: 48px; background: var(--glaze-3); }
+.person .nm { font: 600 15px/1.15 var(--font-pixel); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.person .rl, .person .tr { font: 400 12px/1.3 var(--font-pixel); color: var(--bone-dim); }
+.person .tr b { color: var(--gold); font-weight: 500; }
+.person.want { border-color: var(--clay-deep); }
+.flag { font: 500 11px/1 var(--font-pixel); color: var(--on-clay); background: var(--gold); padding: 3px 5px; }
+.flag.aboard { background: var(--olive); }
+
+/* ---------- sheets: merchants, events, decisions ---------- */
+#sheet { position: fixed; inset: 0; z-index: 20; display: grid; align-items: end; background: rgba(8, 5, 3, 0.62); }
+.sheet-card {
+  width: 100%; max-width: 640px; margin: 0 auto; max-height: 88%; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--glaze); border-top: 3px solid var(--clay);
+  padding-top: 18px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  animation: sheetIn 0.22s ease-out;
+}
+@keyframes sheetIn { from { transform: translateY(26px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+.sheet-head { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: center; }
+.sheet-head img { width: 64px; height: 64px; background: var(--glaze-3); }
+.sheet-head h2 { margin: 0; font: 700 22px/1.05 var(--font-pixel); }
+.sheet-head p { margin: 4px 0 0; font: 400 13px/1.25 var(--font-pixel); color: var(--bone-dim); }
+.quote { margin: 14px 0 4px; font-style: italic; }
+.reply { min-height: 1.5em; margin: 8px 0; color: var(--clay-hi); }
+.reply.good { color: var(--olive); }
+.trades { display: grid; }
+.trade { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.trade img { width: 34px; height: auto; }
+.trade .tn { font: 500 15px/1.15 var(--font-pixel); min-width: 0; }
+.trade .tn small { display: block; margin-top: 2px; font: 400 12px/1.3 var(--font-pixel); color: var(--bone-dim); }
+.trade .acts { display: flex; gap: 6px; align-items: center; }
+.trade .pr { font: 700 16px/1 var(--font-pixel); color: var(--gold); font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
+.trade .btn { min-width: 58px; padding: 8px 10px; }
+.deal { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+.deal span { font: 400 13px/1.3 var(--font-pixel); color: var(--bone-dim); flex: 1 1 160px; }
+.ev-title { margin: 0 0 10px; font: 700 23px/1.1 var(--font-pixel); color: var(--clay-hi); }
+.ev-text p { margin: 0 0 10px; }
+.ev-text p.out { color: var(--bone); }
+.choices { display: grid; gap: 8px; margin-top: 14px; }
+.choice { text-align: left; }
+.choice small { font-family: var(--font-story); font-size: 13px; line-height: 1.35; }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px 14px; margin: 12px 0; font-size: 15px; }
+.kv dt { font: 500 12px/1.6 var(--font-pixel); color: var(--bone-dim); text-transform: uppercase; letter-spacing: 0.07em; }
+.kv dd { margin: 0; }
+.kv .bad { color: var(--wine); } .kv .good { color: var(--olive); }
+
+/* ---------- hold ---------- */
+.hold-wrap { margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px)) + env(safe-area-inset-left, 0px)); margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)) + env(safe-area-inset-right, 0px)); }
+#holdCanvas { display: block; margin: 0 auto; touch-action: none; cursor: grab; }
+.hold-help { margin: 0 0 8px; font: 400 13px/1.35 var(--font-pixel); color: var(--bone-dim); }
+.hold-info { min-height: 3.1em; margin: 8px 0; font-size: 15px; }
+.hold-info b { font-family: var(--font-pixel); font-weight: 600; }
+.hold-info .bad { color: var(--wine); } .hold-info .good { color: var(--olive); }
+.meters { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 6px 0 10px; font: 500 13px/1.3 var(--font-pixel); color: var(--bone-dim); font-variant-numeric: tabular-nums; }
+.meters b { color: var(--bone); font-weight: 600; }
+
+/* ---------- voyage ---------- */
+.leg { margin: 0; font: 700 22px/1.1 var(--font-pixel); text-wrap: balance; }
+.bars { display: grid; gap: 10px; margin: 14px 0; }
+.bar { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; align-items: center; }
+.bar > span { font: 500 12px/1 var(--font-pixel); text-transform: uppercase; letter-spacing: 0.08em; color: var(--bone-dim); }
+.track { position: relative; height: 14px; background: var(--glaze-3); border: 2px solid var(--line-soft); }
+.track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--aegean); }
+.track.sun i { background: var(--gold); }
+.track.sun.late i { background: var(--clay); }
+.eta { margin: 0 0 8px; font-size: 15px; }
+.eta.bad { color: var(--clay-hi); }
+.ctrl { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; align-items: center; margin: 10px 0; }
+.ctrl > span { font: 500 12px/1.2 var(--font-pixel); text-transform: uppercase; letter-spacing: 0.08em; color: var(--bone-dim); }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 2px solid var(--line); }
+.seg button { min-height: 44px; padding: 6px 8px; border: 0; border-left: 2px solid var(--line); background: var(--glaze-2); color: var(--bone-dim); font: 500 14px/1.1 var(--font-pixel); cursor: pointer; }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--clay); color: var(--on-clay); font-weight: 700; }
+
+/* ---------- crew and ledger ---------- */
+.crew { display: grid; }
+.mate { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.mate img { grid-row: span 2; width: 40px; height: 40px; background: var(--glaze-3); }
+.mate .nm { font: 600 15px/1.15 var(--font-pixel); }
+.mate .nm small { font-weight: 400; color: var(--bone-dim); margin-left: 6px; }
+.mate .nt { grid-column: 2; font-size: 13px; line-height: 1.35; color: var(--bone-dim); }
+.mate .st { grid-row: span 2; grid-column: 3; font: 500 12px/1 var(--font-pixel); padding: 4px 6px; border: 1px solid var(--line); color: var(--olive); }
+.mate .st.wounded, .mate .st.sick { color: var(--wine); border-color: var(--wine); }
+.goals { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.goals li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 10px; font-size: 15px; }
+.goals .box { width: 14px; height: 14px; margin-top: 4px; border: 2px solid var(--bone-dim); }
+.goals li.done .box { background: var(--olive); border-color: var(--olive); }
+.goals li.done span:last-child { color: var(--bone-dim); }
+.log { list-style: none; margin: 0; padding: 0; }
+.log li { padding: 8px 0; border-bottom: 1px solid var(--line-soft); font-size: 15px; }
+.log .when { display: block; margin-bottom: 2px; font: 500 11px/1.2 var(--font-pixel); color: var(--clay); text-transform: uppercase; letter-spacing: 0.1em; }
+.log li.quiet { color: var(--bone-dim); }
+.log li.bad { color: var(--clay-hi); }
+
+/* ---------- tabs ---------- */
+.tabs {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--glaze-2); border-top: 2px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
+}
+.tabs button {
+  position: relative; min-height: 58px; display: grid; justify-items: center; align-content: center; gap: 4px; cursor: pointer;
+  border: 0; border-top: 3px solid transparent; background: transparent; color: var(--bone-dim);
+  font: 500 12px/1 var(--font-pixel); letter-spacing: 0.07em; text-transform: uppercase;
+}
+.tabs svg { width: 22px; height: 22px; shape-rendering: crispEdges; }
+.tabs button[aria-selected="true"] { color: var(--bone); border-top-color: var(--clay); background: var(--glaze); }
+.tabs .dot { position: absolute; top: 9px; left: calc(50% + 11px); width: 8px; height: 8px; background: var(--gold); }
+
+/* ---------- theatre: the title, the opening, the end of the season ---------- */
+#theater { position: fixed; inset: 0; z-index: 30; background: var(--glaze); display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+.t-view { position: relative; overflow: hidden; min-height: 0; }
+#tcanvas { position: absolute; top: 0; left: 50%; transform: translateX(-50%); }
+.t-top { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; padding: 0 16px; }
+.t-title h1 { margin: 0; font: 700 clamp(46px, 15vw, 84px)/0.9 var(--font-pixel); letter-spacing: 0.08em; color: var(--bone); text-shadow: 4px 4px 0 var(--glaze); }
+.t-title p { margin: 12px 0 0; font: 500 14px/1.3 var(--font-pixel); letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); text-shadow: 2px 2px 0 var(--glaze); }
+.t-bottom {
+  position: relative; padding-top: 18px; padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-top: 3px solid var(--clay); background: var(--glaze); max-height: 62vh; overflow-y: auto;
+}
+.t-text { max-width: 34em; margin: 0 auto; min-height: 5.2em; }
+.t-text p { margin: 0 0 12px; font: 17px/1.55 var(--font-story); }
+.t-text p.in { animation: lineIn 0.6s ease-out; }
+.t-text .year { font: 600 15px/1.3 var(--font-pixel); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+.t-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 34em; margin: 6px auto 0; }
+.t-actions .btn { flex: 1 1 200px; }
+.t-hint { margin: 10px 0 0; text-align: center; font: 400 12px/1.2 var(--font-pixel); color: var(--bone-dim); }
+.summary h2 { margin: 0; text-align: center; font: 500 13px/1.3 var(--font-pixel); letter-spacing: 0.14em; text-transform: uppercase; color: var(--bone-dim); }
+.rating { margin: 6px 0 14px; text-align: center; font: 700 26px/1.1 var(--font-pixel); color: var(--gold); text-wrap: balance; }
+.tally { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; margin: 0 0 14px; font-size: 15px; }
+.tally dt { color: var(--bone-dim); }
+.tally dd { margin: 0; text-align: right; font: 600 16px/1.4 var(--font-pixel); font-variant-numeric: tabular-nums; }
+.tally .total { padding-top: 8px; border-top: 2px solid var(--line); color: var(--bone); }
+
+.toast {
+  position: fixed; z-index: 40; left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
+  width: max-content; max-width: min(92vw, 420px); padding: 10px 14px; pointer-events: none;
+  background: var(--glaze-3); border: 2px solid var(--clay-deep); font: 500 14px/1.3 var(--font-pixel); opacity: 0; transition: opacity 0.2s;
+}
+.toast.on { opacity: 1; }
+
+@media (min-width: 960px) {
+  #app { max-width: 1280px; grid-template-columns: minmax(0, 1fr) 460px; grid-template-rows: minmax(0, 1fr) auto; }
+  .stage, #app.compact .stage { grid-column: 1; grid-row: 1 / span 2; height: 100%; }
+  .meander { display: none; }
+  .panel { grid-column: 2; grid-row: 1; border-left: 2px solid var(--line); }
+  .tabs { grid-column: 2; grid-row: 2; border-left: 2px solid var(--line); }
+  #app.compact .strip { display: block; }
+  #app.compact .chips { display: flex; }
+  #sheet { align-items: center; }
+  .sheet-card { max-width: 560px; max-height: 84%; border: 2px solid var(--line); border-top: 3px solid var(--clay); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .strip p.in, .t-text p.in, .sheet-card { animation: none; }
+  .stage, .banner, .toast { transition: none; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="stage" id="stage">
+    <canvas id="scene" role="img" aria-label="The harbour at Rhodes."></canvas>
+    <div class="hotspots" id="hotspots"></div>
+    <header class="hud" id="hud">
+      <div class="hud-row">
+        <div class="purse" id="purse"><img id="coinImg" alt="" width="22" height="22"><b id="silver">0</b><span class="unit">dr</span></div>
+        <span class="hud-where" id="where"></span>
+        <span class="spacer"></span>
+        <button class="icon-btn" id="soundBtn" type="button" aria-pressed="true" aria-label="Sound"></button>
+        <button class="icon-btn" id="menuBtn" type="button" aria-label="Menu"></button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="strip" id="strip" role="button" tabindex="0" aria-label="Read the story so far"><p id="stripText" aria-live="polite"></p></div>
+    </header>
+    <div class="banner" id="banner" aria-hidden="true"></div>
+  </div>
+  <div class="meander" id="meander" aria-hidden="true"></div>
+  <main class="panel" id="panel" role="tabpanel"></main>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Ship">
+    <button type="button" role="tab" data-tab="main" id="tab-main"><span class="ic" id="mainIcon"></span><span id="mainLabel">Quay</span><span class="dot" hidden></span></button>
+    <button type="button" role="tab" data-tab="hold" id="tab-hold"><span class="ic" data-icon="hold"></span><span>Hold</span><span class="dot" hidden></span></button>
+    <button type="button" role="tab" data-tab="crew" id="tab-crew"><span class="ic" data-icon="crew"></span><span>Crew</span><span class="dot" hidden></span></button>
+    <button type="button" role="tab" data-tab="ledger" id="tab-ledger"><span class="ic" data-icon="ledger"></span><span>Ledger</span><span class="dot" hidden></span></button>
+  </nav>
+</div>
+
+<div id="sheet" hidden><div class="sheet-card" id="sheetCard" role="dialog" aria-modal="true" aria-label="Details"></div></div>
+
+<div id="theater" hidden>
+  <div class="t-view"><canvas id="tcanvas" aria-hidden="true"></canvas><div class="t-top" id="tTop"></div></div>
+  <div class="t-bottom"><div class="t-text" id="tText" aria-live="polite"></div><div class="t-actions" id="tActions"></div><p class="t-hint" id="tHint"></p></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+// ===== ENGINE START =====
+// The rules of the game. Nothing in here touches the page, so tests/sim.js can play it on its own.
+
+const DAY_SECS = 40;                 // seconds of play from dawn to dusk, at normal speed
+const DOCK = { cols: 2, rows: 8 };   // the quay, or the beach, beside the ship
+const LOAN = { lender: 'Antimachos', principal: 150, due: 195 };
+const OWN_SILVER = 30, BOUNTY = 20, REP_PER_VISIT = 12, PROXENOS_REP = 10;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+const num = n => NUM[n] || String(n);
+const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+
+const GOODS = {
+  wine:   { name: 'Rhodian wine', of: 'Rhodian wine', unit: 'amphora', units: 'amphorae', w: 1, h: 2, value: 13, desc: 'Red wine in a tall Rhodian jar with a stamped handle.' },
+  figs:   { name: 'Dried figs', of: 'figs', unit: 'basket', units: 'baskets', w: 1, h: 1, value: 5, desc: 'Figs from the island, dried hard and sweet.' },
+  sponge: { name: 'Sponges', of: 'sponges', unit: 'bundle', units: 'bundles', w: 1, h: 1, value: 4, soft: true, desc: 'Soft. Fragile cargo that touches something soft does not break.' },
+  cups:   { name: 'Glazed cups', of: 'glazed cups', unit: 'crate', units: 'crates', w: 1, h: 1, value: 10, fragile: true, desc: 'Black-glazed drinking cups, thin as a fingernail. Fragile.' },
+  honey:  { name: 'Thyme honey', of: 'honey', unit: 'jar', units: 'jars', w: 1, h: 1, value: 9, desc: 'Dark honey from the hills behind Halicarnassus.' },
+  cloth:  { name: 'Coan cloth', of: 'Coan cloth', unit: 'bolt', units: 'bolts', w: 2, h: 1, value: 18, soft: true, desc: 'Cloth from Cos, so fine you can see through it. Soft.' },
+  scent:  { name: 'Perfume', of: 'perfume', unit: 'box', units: 'boxes', w: 1, h: 1, value: 15, fragile: true, desc: 'Little clay flasks of rose and iris oil. Fragile.' },
+  marble: { name: 'White marble', of: 'marble', unit: 'block', units: 'blocks', w: 2, h: 2, value: 55, desc: 'A block of white marble from the quarries near Mylasa.' },
+  hermes: { name: 'Bronze Hermes', the: 'the bronze Hermes', of: 'bronze', unit: 'statuette', units: 'statuettes', w: 1, h: 1, value: 30, desc: 'Hermes, the god of merchants and thieves. Probably stolen.' },
+  barley: { name: 'Barley', of: 'barley', unit: 'sack', units: 'sacks', w: 1, h: 1, value: 1, food: 10, desc: 'Feeds ten people for a day. An eaten sack frees its square.' },
+  water:  { name: 'Water', of: 'water', unit: 'jar', units: 'jars', w: 1, h: 1, value: 1, water: 10, desc: 'Ten people drink a jar a day. Refill it free in port.' },
+  bolt:   { name: 'Bolt-thrower', the: 'the bolt-thrower', of: 'artillery', unit: 'bolt-thrower', units: 'bolt-throwers', w: 1, h: 1, value: 25, bow: true, desc: 'Shoots heavy bolts as a fight begins. It only fits in the bow.' },
+  kit:    { name: 'Gear', of: 'gear', unit: 'bundle of gear', units: 'bundles of gear', w: 1, h: 1, value: 0, desc: 'A hired hand’s bedding and gear. They sail only if it is in the hold.' },
+};
+const isSupply = it => !!(GOODS[it.g].food || GOODS[it.g].water);
+const isCargo = it => !isSupply(it) && it.g !== 'kit' && it.g !== 'bolt';
+
+const HULLS = {
+  small: { name: 'Elpis', kind: 'a small coastal trader', cols: 5, rows: 7, bow: 1,
+    mask: ['.###.', '#####', '#####', '##M##', '#####', '#####', '.###.'] },
+};
+const hullOf = s => HULLS[s.hull];
+const holdCells = s => hullOf(s).mask.join('').split('').filter(c => c === '#').length;
+
+const CREW = [
+  { id: 'ariston', name: 'Ariston', role: 'Trader and captain', note: 'Twenty-four. Owes money.', fight: 1, row: 0 },
+  { id: 'glaukos', name: 'Glaukos', role: 'Helmsman', note: 'Old. Sees signs in everything.', fight: 0.6, row: 0 },
+  { id: 'nikias', name: 'Nikias', role: 'Sailor', note: 'From Lindos. Argues with his brother.', fight: 1, row: 1 },
+  { id: 'lysis', name: 'Lysis', role: 'Sailor', note: 'From Lindos. Argues with his brother.', fight: 1, row: 1 },
+  { id: 'pamphilos', name: 'Pamphilos', role: 'Sailor', note: 'Strong. Says very little.', fight: 1.1, row: 1.1 },
+  { id: 'mikkos', name: 'Mikkos', role: 'Ship’s boy', note: 'Twelve. Always hungry.', fight: 0.4, row: 0.6 },
+];
+const HIRES = {
+  philon: { port: 'rhodes', name: 'Philon', role: 'Rhodian slinger', fee: 12, fight: 1, row: 0.6, shots: 2, kit: 'Sling bag',
+    note: 'Hits what he aims at. Talks the rest of the time.',
+    pitch: '“I can hit a gull at fifty paces. I scratch a word on every lead bullet.” Which word? “Catch.”',
+    joined: 'Philon came aboard with a bag of lead bullets and a great many opinions.',
+    shot: 'Philon’s lead bullets said “Catch.” Two of them were caught, badly.' },
+  kydas: { port: 'halic', name: 'Kydas', role: 'Cretan archer', fee: 18, fight: 1.2, row: 0.5, shots: 3, kit: 'Bow case',
+    note: 'Cretan. Quiet. Very good with a bow.',
+    pitch: '“My cousins are pirates. Most Cretans’ cousins are pirates. That is why you want a Cretan.”',
+    joined: 'Kydas came aboard with his bow and said almost nothing, which the crew found restful.',
+    shot: 'Kydas shot three times, and said something in Cretan each time. It did not sound like a prayer.' },
+  lykos: { port: 'halic', name: 'Lykos', role: 'Doctor, from Cos', fee: 20, fight: 0.3, row: 0.3, heal: true, kit: 'Medicine chest',
+    note: 'Sets bones, sews cuts, keeps the wounded alive.',
+    pitch: '“I trained with the doctors on Cos. I can set a bone, sew up a cut, and tell you what you ate yesterday.”',
+    joined: 'Lykos came aboard, looked at the crew, and sighed like a man counting future patients.' },
+};
+
+// Everyone you can trade with. Prices are in drachmas. A merchant who sells a thing will buy it back for less.
+const MERCHANTS = {
+  thras: { port: 'rhodes', name: 'Thrasyllos', role: 'Wine merchant', at: 0.08,
+    look: { skin: '#c48a58', hair: '#3a281c', style: 'short', beard: 2, robe: '#8b3240', trim: '#ead7ae' },
+    sells: { wine: 8 }, buys: { honey: 12 },
+    hello: ['“Halicarnassus has Knidian wine, Coan wine and wine of its own. It still buys mine. Think about that.”'],
+    home: ['“Back already? Good. Did you bring me any honey?”'],
+    yes: ['“You remind me of my brother. I don’t like my brother. Fine.”', '“Fine. Tell nobody.”'],
+    no: ['“No.”', '“That was my good price. Now you get my other one.”'] },
+  korinna: { port: 'rhodes', name: 'Korinna', role: 'Sponges and figs', at: 0.22,
+    look: { skin: '#b97f50', hair: '#24180f', style: 'veil', veil: '#3f6f8e', beard: 0, robe: '#d2b27a', trim: '#8a5a34' },
+    sells: { sponge: 2, figs: 3 }, buys: { cloth: 24, scent: 20 },
+    hello: ['“Sponges go around anything that breaks. That is what sponges are for. Also washing.”'],
+    home: ['“If you brought Coan cloth or perfume, I know women who want both.”'],
+    yes: ['“You haggle like a fisherman’s wife. I mean that kindly.”'],
+    no: ['“I have six children. I do not need a seventh arguing with me.”'] },
+  aristeia: { port: 'rhodes', name: 'Aristeia', role: 'Potter’s widow', at: 0.36,
+    look: { skin: '#cf9a6a', hair: '#bfb7aa', style: 'veil', veil: '#2a2420', beard: 0, robe: '#4a3a30', trim: '#c8623a' },
+    sells: { cups: 4 }, buys: {},
+    hello: ['“Black glaze, thin as a fingernail. They ring when you tap them. They also break when you tap them.”'],
+    home: ['“Did my cups get there whole? Don’t tell me if they didn’t.”'],
+    yes: ['“For you, because you didn’t tap them.”'],
+    no: ['“My husband made these, and his father before him. They cost what they cost.”'] },
+  arsenal: { port: 'rhodes', name: 'Damagetos', role: 'Clerk of the arsenal', at: 0.5,
+    look: { skin: '#b07a4c', hair: '#5a4632', style: 'bald', beard: 1, robe: '#5f6b4a', trim: '#d9a441' },
+    sells: { bolt: 35 }, buys: {}, stock: { bolt: 1 },
+    hello: ['“A bolt-thrower, left over from the siege. Everything in Rhodes is left over from the siege.”', '“It goes in the bow. It has to point at something.”'],
+    home: ['“Still got the bolt-thrower? Good. The navy likes to know where its engines are.”'],
+    yes: ['“Fine. But you didn’t get it from me.”'],
+    no: ['“The navy sets the price. Argue with the navy.”'] },
+  stores: { port: 'rhodes', name: 'Myrto', role: 'Harbour stores', at: 0.64, refill: true,
+    look: { skin: '#c99468', hair: '#6b4a2e', style: 'long', beard: 0, robe: '#9a6a3a', trim: '#efe3cc' },
+    sells: { barley: 2, water: 1 }, buys: {},
+    hello: ['“Barley and water. One sack or one jar does ten people for a day. Sailors always forget they are people.”', '“Water from the fountain is free if you bring jars.”'],
+    home: ['“You look thin. They always come back thin.”'],
+    yes: ['“All right, all right.”'], no: ['“It’s barley. It costs what barley costs.”'] },
+  works: { port: 'rhodes', name: 'Aristokles', role: 'Overseer of the statue works', at: 0.78,
+    look: { skin: '#b88252', hair: '#2d2018', style: 'curly', beard: 2, robe: '#e9dcc0', trim: '#b0773a', hat: 'pilos' },
+    sells: {}, buys: { marble: 70, hermes: 40 },
+    hello: ['“Marble for the base, bronze for the god. We buy all of it and pay in silver. The god is not cheap.”'],
+    home: ['“Marble? Bronze? The god is waiting, and so are his knees.”'],
+    yes: ['“The city can afford it. Don’t tell the city.”'],
+    no: ['“I answer to the council. You do not want to meet the council.”'] },
+  bank: { port: 'rhodes', name: 'Antimachos', role: 'Banker', at: 0.92, bank: true,
+    look: { skin: '#c99a6c', hair: '#d8d2c4', style: 'short', beard: 1, robe: '#2f4a6a', trim: '#e3b453' },
+    sells: {}, buys: {},
+    hello: ['“Halicarnassus and back. Then we talk about my money.”'],
+    home: ['“Welcome home. Shall we talk about my 195 drachmas?”'],
+    yes: ['“No.”'], no: ['“No.”'] },
+
+  dion: { port: 'halic', name: 'Dionysios', role: 'Wine shop', at: 0.08,
+    look: { skin: '#b5794a', hair: '#1f1712', style: 'curly', beard: 2, robe: '#6e3b5c', trim: '#e3b453' },
+    sells: {}, buys: { wine: 17 },
+    hello: ['“Rhodian? Good. The Coans put seawater in their wine and say it’s a secret. It isn’t a secret. You can taste it.”'],
+    yes: ['“Fine. My customers can pay the difference.”'],
+    no: ['“I sell wine. I don’t give it away.”'] },
+  mania: { port: 'halic', name: 'Mania', role: 'Honey seller', at: 0.22,
+    look: { skin: '#a96f42', hair: '#2a1d14', style: 'veil', veil: '#9c4a26', beard: 0, robe: '#5e6b3a', trim: '#e3b453' },
+    sells: { honey: 5 }, buys: { figs: 7 },
+    hello: ['“Thyme honey from the hills behind the town. The bees work harder than my sons.”', '“And if you have figs, I want figs.”'],
+    yes: ['“You have an honest face. It won’t last, in your trade.”'],
+    no: ['“The bees would laugh at you.”'] },
+  theodote: { port: 'halic', name: 'Theodote', role: 'Cloth merchant, from Cos', at: 0.36,
+    look: { skin: '#d3a274', hair: '#7a3f1e', style: 'long', beard: 0, robe: '#efe6d6', trim: '#8e4a8c' },
+    sells: { cloth: 11 }, buys: { sponge: 6 },
+    hello: ['“Coan cloth. So fine you can see through it. Whether that is the point or the problem depends on your mother.”', '“I also buy sponges. Don’t ask what for.”'],
+    yes: ['“Clever. I like clever, a little.”'],
+    no: ['“That was a little too clever.”'] },
+  hermon: { port: 'halic', name: 'Hermon', role: 'Perfumer', at: 0.5,
+    look: { skin: '#c08857', hair: '#4a2f1c', style: 'short', beard: 0, robe: '#3d6b6b', trim: '#f2e6cf', hat: 'band' },
+    sells: { scent: 8 }, buys: { cups: 12 },
+    hello: ['“Rose, iris, and something from Egypt I am not allowed to name. Pack the flasks against something soft, or you will sell the smell and not the perfume.”', '“I want fine cups too, for the customers who matter.”'],
+    yes: ['“For you, a better price. Smell this.”'],
+    no: ['“You smell of fish and bargaining. No.”'] },
+  uliades: { port: 'halic', name: 'Uliades', role: 'Marble yard', at: 0.64,
+    look: { skin: '#a8724a', hair: '#3b2c22', style: 'short', beard: 2, robe: '#8a7a64', trim: '#efe3cc' },
+    sells: { marble: 26 }, buys: {}, stock: { marble: 2 },
+    hello: ['“White marble from the quarries near Mylasa. Rhodes is building a god, and a god needs something to stand on.”', '“Two blocks left. They are heavy, and they are worth it.”'],
+    yes: ['“Good. You know stone.”'],
+    no: ['“Marble doesn’t bargain. Neither do I.”'] },
+  nameless: { port: 'halic', name: 'A man by the boats', role: 'Won’t give his name', at: 0.78,
+    look: { skin: '#b57f52', hair: '#1b1410', style: 'short', beard: 1, robe: '#3a3430', trim: '#6b5a48', hat: 'petasos' },
+    sells: { hermes: 12 }, buys: {}, stock: { hermes: 1 },
+    hello: ['“A Hermes, in bronze. It was my grandmother’s.” He did not look like anybody’s grandson.'],
+    yes: ['“Fine. Take it. Quickly.”'],
+    no: ['He looked over his shoulder. “Take it or don’t.”'] },
+  hstores: { port: 'halic', name: 'Artemon', role: 'Harbour stores', at: 0.92, refill: true,
+    look: { skin: '#b98654', hair: '#8a8478', style: 'short', beard: 2, robe: '#7a5a3a', trim: '#efe3cc' },
+    sells: { barley: 2, water: 1 }, buys: {},
+    hello: ['“Barley and water for the voyage home. The water is free if you have jars. The jars are not.”'],
+    yes: ['“All right.”'], no: ['“No.”'] },
+};
+const PORTS = {
+  rhodes: { name: 'Rhodes', hires: ['philon'] },
+  halic: { name: 'Halicarnassus', hires: ['lykos', 'kydas'] },
+};
+const merchantsAt = port => Object.keys(MERCHANTS).filter(id => MERCHANTS[id].port === port);
+
+const WIND = {
+  fair:  { name: 'Fair wind', sp: 1.45, row: 0.25 },
+  light: { name: 'Light breeze', sp: 1.0, row: 0.6 },
+  calm:  { name: 'Flat calm', sp: 0.12, row: 1 },
+  storm: { name: 'Squall', sp: 0.7, row: 0 },
+};
+const STOPS = {
+  rhodes: { name: 'Rhodes', port: true },
+  halic: { name: 'Halicarnassus', port: true },
+  symi: { name: 'Symi', where: 'A beach on Symi' },
+  triopion: { name: 'Cape Triopion', where: 'Under Cape Triopion, below Knidos' },
+  loryma: { name: 'Loryma', where: 'The harbour at Loryma' },
+  atsea: { name: 'At anchor', where: 'At anchor off a rocky shore' },
+};
+// One sailing day each. Times are fractions of the daylight, 0 at dawn and 1 at dusk.
+const DAYS = {
+  r_symi: { from: 'rhodes', to: 'symi', dist: 1, wind: [[0, 'fair']],
+    lines: [[0.02, 'They rowed out past the god’s feet. Glaukos the helmsman spat over the side for luck.'],
+      [0.14, 'Then the wind came round to the south, which was the right direction, and Glaukos took the credit.'],
+      [0.36, 'Dolphins ran alongside for a while. Glaukos said it was a good sign. Glaukos said most things were signs.', 'dolphins']] },
+  symi_tri: { from: 'symi', to: 'triopion', dist: 1, wind: [[0, 'light']],
+    lines: [[0.03, 'They left Symi under a grey sky, with the mainland close on the right.'],
+      [0.86, 'By evening the sea had remembered its manners.']],
+    events: [[0.4, 'squall']] },
+  tri_hal: { from: 'triopion', to: 'halic', dist: 1, wind: [[0, 'calm'], [0.5, 'light']],
+    lines: [[0.02, 'In the morning there was no wind at all. The sea lay flat as a plate, and the sail hung like washing.'],
+      [0.5, 'Around noon a breeze came up from the west. Everyone pretended they had not been worried.']] },
+  hal_tri: { from: 'halic', to: 'triopion', dist: 1, wind: [[0, 'light']],
+    lines: [[0.03, 'They left Halicarnassus low in the water, with the whole town watching from its seats.']],
+    events: [[0.42, 'pirates']] },
+  tri_lor: { from: 'triopion', to: 'loryma', dist: 1, wind: [[0, 'fair']],
+    lines: [[0.04, 'They followed the coast south, past headlands that all looked alike. Glaukos named each one as they passed it. He may have made some of them up.']] },
+  lor_rho: { from: 'loryma', to: 'rhodes', dist: 0.8, wind: [[0, 'light']],
+    lines: [[0.04, 'Rhodes was in sight all day, which made the day longer.'],
+      [0.55, 'In the afternoon they could make out the walls, and then the cranes over the god.']] },
+  tri_rho: { from: 'triopion', to: 'rhodes', dist: 1.6, wind: [[0, 'fair'], [0.55, 'light']], rough: [0.3, 0.5],
+    lines: [[0.03, 'There was nothing between Cape Triopion and Rhodes but water, and all of it was moving.'],
+      [0.7, 'Late in the day Rhodes came up out of the sea: first the hill, then the walls, then the cranes over the god.']] },
+};
+const ROUTES = { out: ['r_symi', 'symi_tri', 'tri_hal'], home: ['hal_tri'], coast: ['tri_lor', 'lor_rho'], open: ['tri_rho'] };
+const ROUTE_DAYS = { out: 3, home: 3 };
+
+const CAMPS = {
+  symi: {
+    lines: s => ['They pulled Elpis up on a beach on Symi, where sponge divers were drying their catch on the rocks.',
+      'The divers went down holding a stone and came up holding sponges. They could stay under a very long time, and told everyone so.']
+      .concat(s.items.some(i => i.g === 'figs') ? ['Mikkos ate three figs out of the cargo and had to pay for them out of his wages, which he did not have.'] : [])
+      .concat(['Before he slept, Glaukos looked north for a long time and said nothing. With Glaukos, that was the bad sign.']),
+    hint: 'Rough water tomorrow. Fragile cargo should touch something soft, like sponges.',
+    actions: [
+      { id: 'sponge', label: 'Buy sponges from the divers', price: 1, limit: 6, good: 'sponge',
+        line: 'The divers sold him sponges, and told him again how long they could hold their breath.' },
+      { id: 'spring', label: 'Fill the water jars at the spring', once: true, refill: true,
+        line: 'They filled the jars at a spring above the beach. The water tasted of stone and was very cold.' },
+    ] },
+  triopion: {
+    lines: s => s.voyage.route === 'out'
+      ? ['They spent the night under Cape Triopion, below the walls of Knidos.',
+        'Fishermen sold them fish, and news. A hemiolia had been seen off Kos. Nobody said whose.']
+      : ['They spent the night under Cape Triopion again. The fishermen remembered them, and charged more for the fish.',
+        'From here Rhodes was one long day across open water, or two days down the coast by way of Loryma.'],
+    hint: s => s.voyage.route === 'out' ? 'Pirates are about. In Halicarnassus you can hire fighters, and a doctor.'
+      : 'The open crossing saves a day of food and water, but the sea out there is rough.',
+    actions: [
+      { id: 'fish', label: 'Buy fish for tomorrow', price: 3, once: true, fish: true,
+        line: 'They bought fish. Mikkos ate his share, then looked at everyone else’s.' },
+    ] },
+  loryma: {
+    lines: () => ['Loryma was a harbour and a fort on the mainland across from Rhodes. The Rhodian soldiers there were bored, and glad of company.',
+      'They had a spring, and a great deal of advice.'],
+    actions: [
+      { id: 'spring', label: 'Fill the water jars at the spring', once: true, refill: true,
+        line: 'The soldiers showed them the spring, and then told them how to fill a jar.' },
+    ] },
+  atsea: { lines: () => [], actions: [] },
+};
+
+const VERSION = 1;
+const OUT = [];   // narration waiting for the page
+
+// ---------- randomness: seeded, and stored in the save, so a game replays the same way ----------
+function rnd(s) {
+  s.seed = (s.seed + 0x6D2B79F5) | 0;
+  let t = Math.imul(s.seed ^ (s.seed >>> 15), 1 | s.seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const pick = (s, arr) => arr[Math.floor(rnd(s) * arr.length) % arr.length];
+
+function newGame(seed) {
+  const s = {
+    v: VERSION, ch: 1, seed: (seed | 0) || 1, phase: 'title', started: false, hull: 'small',
+    silver: OWN_SILVER + LOAN.principal, loan: { due: LOAN.due, paid: false, paidAmt: 0 }, debt: 0,
+    items: [], nextId: 1,
+    crew: CREW.map(c => Object.assign({}, c, { st: 'ok' })), lost: [],
+    port: 'rhodes', home: false, visit: null, voyage: null, camp: null, dayN: 0, half: false,
+    mk: {}, trades: {}, rep: { rhodes: 10, halic: 0 }, proxenos: {},
+    fresh: 0, hungry: false, thirsty: false, pending: null, pirates: null, flags: {},
+    stats: { broken: 0, bought: 0, sold: 0, spent: 0, earned: 0, hungry: 0, thirsty: 0, nights: 0, haggles: 0 },
+    log: [], said: {}, summary: null,
+  };
+  addItem(s, 'barley', 'hold', 1, 6, 0);
+  addItem(s, 'water', 'hold', 2, 6, 0);
+  openVisit(s, 'rhodes');
+  return s;
+}
+
+function begin(s) {
+  if (s.started) return;
+  s.started = true; s.phase = 'port';
+  say(s, 'The harbour smelled of tar, fish and money. Ariston went to see what Halicarnassus might want.');
+}
+
+function say(s, text, tone) {
+  const e = { text, tone: tone || '', when: whenLabel(s) };
+  s.log.push(e);
+  if (s.log.length > 300) s.log.shift();
+  if (tone !== 'quiet' && tone !== 'choice' && tone !== 'told') OUT.push(e);   // 'told' lines were already shown, in an event
+}
+function sayOnce(s, key, text, tone) { if (s.said[key]) return false; s.said[key] = 1; say(s, text, tone); return true; }
+function whenLabel(s) {
+  if (s.phase === 'sea' || s.phase === 'camp') return 'Day ' + Math.max(1, s.dayN);
+  return s.port ? PORTS[s.port].name : '';
+}
+const fail = msg => ({ ok: false, msg });
+
+// ---------- the hold: a grid shaped like the ship, and the quay beside it ----------
+function dims(it, rot) { const g = GOODS[it.g], r = rot == null ? it.rot : rot; return r ? { w: g.h, h: g.w } : { w: g.w, h: g.h }; }
+const rotsOf = it => { const g = GOODS[it.g]; return g.w === g.h ? [0] : [it.rot || 0, 1 - (it.rot || 0)]; };
+function cellOpen(s, x, y) {
+  const H = hullOf(s);
+  return x >= 0 && y >= 0 && x < H.cols && y < H.rows && H.mask[y][x] === '#';
+}
+function fits(s, it, where, x, y, rot) {
+  const g = GOODS[it.g], d = dims(it, rot);
+  if (where === 'hold') {
+    for (let yy = y; yy < y + d.h; yy++) for (let xx = x; xx < x + d.w; xx++) {
+      if (!cellOpen(s, xx, yy)) return false;
+      if (g.bow && yy >= hullOf(s).bow) return false;
+    }
+  } else if (x < 0 || y < 0 || x + d.w > DOCK.cols || y + d.h > DOCK.rows) return false;
+  for (const o of s.items) {
+    if (o === it || o.where !== where) continue;
+    const e = dims(o);
+    if (x < o.x + e.w && o.x < x + d.w && y < o.y + e.h && o.y < y + d.h) return false;
+  }
+  return true;
+}
+function itemAt(s, where, x, y) {
+  return s.items.find(o => { if (o.where !== where) return false; const e = dims(o); return x >= o.x && x < o.x + e.w && y >= o.y && y < o.y + e.h; }) || null;
+}
+function firstFit(s, it, where) {
+  const H = where === 'hold' ? hullOf(s) : DOCK;
+  for (const rot of rotsOf(it)) for (let y = 0; y < H.rows; y++) for (let x = 0; x < H.cols; x++) if (fits(s, it, where, x, y, rot)) return { x, y, rot };
+  return null;
+}
+function addItem(s, g, where, x, y, rot, fill) {
+  const it = { id: s.nextId, g, where, x: 0, y: 0, rot: 0 };
+  if (GOODS[g].food) it.fill = GOODS[g].food;
+  if (GOODS[g].water) it.fill = GOODS[g].water;
+  if (fill != null) it.fill = fill;
+  if (x == null) { const p = firstFit(s, it, where); if (!p) return null; it.x = p.x; it.y = p.y; it.rot = p.rot; }
+  else { if (!fits(s, it, where, x, y, rot || 0)) return null; it.x = x; it.y = y; it.rot = rot || 0; }
+  s.nextId++;
+  s.items.push(it);
+  return it;
+}
+// New things go on the quay, or the beach. If that is full, the crew stows them straight in the hold.
+function stow(s, g) {
+  const it = addItem(s, g, 'dock');
+  if (it) return it;
+  const probe = { id: -1, g, where: 'dock', x: 0, y: 0, rot: 0 }, p = bestSpot(s, probe);
+  if (!p) return null;
+  const h = addItem(s, g, 'hold', p.x, p.y, p.rot);
+  if (h) h.stowed = true;
+  return h;
+}
+function removeItem(s, it) { const i = s.items.indexOf(it); if (i >= 0) s.items.splice(i, 1); }
+function moveItem(s, id, where, x, y, rot) {
+  const it = s.items.find(i => i.id === id);
+  if (!it || !canEditHold(s)) return false;
+  if (where === 'dock' && s.phase === 'sea') return false;
+  if (!fits(s, it, where, x, y, rot)) return false;
+  it.where = where; it.x = x; it.y = y; it.rot = rot;
+  return true;
+}
+// Turn an item where it lies, sliding it a square if it needs room.
+function rotateItem(s, id) {
+  const it = s.items.find(i => i.id === id);
+  if (!it || !canEditHold(s)) return false;
+  const g = GOODS[it.g];
+  if (g.w === g.h) return false;
+  const r = 1 - it.rot;
+  for (const [dx, dy] of [[0, 0], [-1, 0], [0, -1], [-1, -1], [1, 0], [0, 1]]) {
+    if (fits(s, it, it.where, it.x + dx, it.y + dy, r)) { it.x += dx; it.y += dy; it.rot = r; return true; }
+  }
+  return false;
+}
+const canEditHold = s => s.phase === 'port' || s.phase === 'sea' || s.phase === 'camp';
+function cellsOf(it, x, y, rot) {
+  const d = dims(it, rot), out = [];
+  for (let yy = y; yy < y + d.h; yy++) for (let xx = x; xx < x + d.w; xx++) out.push([xx, yy]);
+  return out;
+}
+function touchesSoft(s, it, x, y, rot) {
+  for (const [cx, cy] of cellsOf(it, x, y, rot)) {
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const o = itemAt(s, 'hold', cx + dx, cy + dy);
+      if (o && o !== it && GOODS[o.g].soft) return true;
+    }
+  }
+  return false;
+}
+const isSafe = (s, it) => !GOODS[it.g].fragile || it.where !== 'hold' || touchesSoft(s, it, it.x, it.y, it.rot);
+const atRisk = s => s.items.filter(i => i.where === 'hold' && GOODS[i.g].fragile && !touchesSoft(s, i, i.x, i.y, i.rot));
+const holdUsed = s => s.items.filter(i => i.where === 'hold').reduce((a, i) => a + GOODS[i.g].w * GOODS[i.g].h, 0);
+const dockItems = s => s.items.filter(i => i.where === 'dock');
+
+// Where auto-pack puts a thing: tight against the hull and other cargo, so the free space stays in one piece.
+function bestSpot(s, it) {
+  const H = hullOf(s), g = GOODS[it.g];
+  let best = null;
+  for (const rot of rotsOf(it)) for (let y = 0; y < H.rows; y++) for (let x = 0; x < H.cols; x++) {
+    if (!fits(s, it, 'hold', x, y, rot)) continue;
+    const mine = cellsOf(it, x, y, rot), inside = (cx, cy) => mine.some(c => c[0] === cx && c[1] === cy);
+    let sc = y * 0.3 - x * 0.05;
+    for (const [cx, cy] of mine) {
+      if (!g.bow && cy < H.bow) sc -= 4;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, ny = cy + dy;
+        if (inside(nx, ny)) continue;
+        if (!cellOpen(s, nx, ny) || itemAt(s, 'hold', nx, ny)) sc += 3;
+      }
+    }
+    if (g.fragile && touchesSoft(s, it, x, y, rot)) sc += 100;
+    if (!best || sc > best.sc) best = { x, y, rot, sc };
+  }
+  return best;
+}
+// Pack the quay into the hold: the bolt-thrower first, big things next, soft things before fragile ones.
+function autoPack(s) {
+  if (!canEditHold(s)) return 0;
+  const rank = it => { const g = GOODS[it.g]; return (g.bow ? 1000 : 0) + (g.fragile ? 0 : 100) + g.w * g.h * 10 + (g.soft ? 5 : 0); };
+  const order = dockItems(s).sort((a, b) => rank(b) - rank(a));
+  let n = 0;
+  for (const it of order) { const p = bestSpot(s, it); if (p) { it.where = 'hold'; it.x = p.x; it.y = p.y; it.rot = p.rot; n++; } }
+  return n;
+}
+function unpackAll(s) {
+  if (s.phase === 'sea' || !canEditHold(s)) return 0;
+  let n = 0;
+  for (const it of s.items.filter(i => i.where === 'hold')) {
+    const p = firstFit(s, Object.assign({}, it, { where: 'dock' }), 'dock');
+    if (p) { it.where = 'dock'; it.x = p.x; it.y = p.y; it.rot = p.rot; n++; }
+  }
+  return n;
+}
+
+// ---------- markets ----------
+const inPort = (s, port) => s.phase === 'port' && s.port === port;
+function mk(s, mid) { return s.mk[mid] || (s.mk[mid] = { b: {}, n: {} }); }
+function openVisit(s, port) { s.visit = { port, deal: {}, tries: {}, closed: {}, rep: 0 }; }
+function dealOf(s, mid) {
+  const m = MERCHANTS[mid], v = s.visit;
+  return ((v && v.deal[mid]) || 1) * (1 + Math.max(0, s.rep[m.port] || 0) / 500) * (s.proxenos[m.port] ? 1.05 : 1);
+}
+function buyPrice(s, mid, g) {
+  const m = MERCHANTS[mid], base = m.sells[g];
+  if (!base) return 0;
+  return Math.max(1, Math.round(base * Math.pow(1.05, mk(s, mid).b[g] || 0) / dealOf(s, mid)));
+}
+function sellBase(m, g) {
+  if (m.buys[g]) return m.buys[g];
+  if (m.sells[g] && !GOODS[g].food && !GOODS[g].water) return Math.max(1, Math.round(m.sells[g] * 0.6));
+  return 0;
+}
+function sellPrice(s, mid, g) {
+  const base = sellBase(MERCHANTS[mid], g);
+  if (!base) return 0;
+  return Math.max(1, Math.round(base * Math.pow(0.93, mk(s, mid).n[g] || 0) * dealOf(s, mid)));
+}
+function stockLeft(s, mid, g) {
+  const m = MERCHANTS[mid];
+  if (!m.stock || m.stock[g] == null) return Infinity;
+  return m.stock[g] - (mk(s, mid).b[g] || 0);
+}
+function gainRep(s, port, n) {
+  if (n > 0 && s.visit) { n = Math.min(n, REP_PER_VISIT - s.visit.rep); s.visit.rep += Math.max(0, n); }
+  s.rep[port] = clamp((s.rep[port] || 0) + n, -50, 100);
+}
+function countGood(s, g) { return s.items.filter(i => i.g === g).length; }
+function wants(s, mid) { const m = MERCHANTS[mid]; return Object.keys(m.buys).filter(g => countGood(s, g) > 0); }
+
+function buy(s, mid, g) {
+  const m = MERCHANTS[mid];
+  if (!m || !inPort(s, m.port)) return fail('Not here.');
+  const price = buyPrice(s, mid, g);
+  if (!price) return fail(m.name + ' does not sell that.');
+  if (stockLeft(s, mid, g) <= 0) return fail(m.name + ' has no more.');
+  if (s.silver < price) return fail('You need ' + price + ' dr.');
+  const it = stow(s, g);
+  if (!it) return fail('There is no room left on the quay or in the hold.');
+  s.silver -= price; s.stats.spent += price; s.stats.bought++;
+  mk(s, mid).b[g] = (mk(s, mid).b[g] || 0) + 1;
+  s.trades[mid] = (s.trades[mid] || 0) + 1;
+  gainRep(s, m.port, 1);
+  return { ok: true, price, item: it };
+}
+function sell(s, mid, g) {
+  const m = MERCHANTS[mid];
+  if (!m || !inPort(s, m.port)) return fail('Not here.');
+  const price = sellPrice(s, mid, g);
+  if (!price) return fail(m.name + ' does not buy that.');
+  const it = s.items.find(i => i.g === g && i.where === 'dock') || s.items.find(i => i.g === g && i.where === 'hold');
+  if (!it) return fail('You have none.');
+  const lines = [];
+  removeItem(s, it);
+  mk(s, mid).n[g] = (mk(s, mid).n[g] || 0) + 1;
+  s.trades[mid] = (s.trades[mid] || 0) + 1;
+  if (g === 'hermes' && m.port === 'rhodes' && rnd(s) < 0.3) {
+    gainRep(s, m.port, -8);
+    s.flags.hermes = 'claimed';
+    lines.push('A man in the crowd said the Hermes was his. He was a Rhodian, and he had witnesses. Ariston lost the statuette and some of his good name.');
+    return { ok: true, price: 0, lines };
+  }
+  s.silver += price; s.stats.earned += price; s.stats.sold++;
+  gainRep(s, m.port, 1);
+  if (g === 'hermes' && mid === 'works') { s.flags.hermes = 'sold'; lines.push('Aristokles weighed the Hermes in his hand. “The foundry melts everything,” he said. “Nobody asks.”'); }
+  if (g === 'marble' && mid === 'works' && !s.flags.marbleSold) { s.flags.marbleSold = true; gainRep(s, m.port, 3); lines.push('Aristokles ran his hand over the marble the way a man feels a horse he wants to buy. “It will do for the god’s feet,” he said.'); }
+  return { ok: true, price, lines };
+}
+function haggle(s, mid) {
+  const m = MERCHANTS[mid], v = s.visit;
+  if (!m || !v || !inPort(s, m.port)) return fail('Not here.');
+  if (v.closed[mid]) return fail(m.name + ' has made a final offer.');
+  const t = v.tries[mid] || 0;
+  const p = clamp(0.6 + (s.rep[m.port] || 0) / 250 - 0.22 * t, 0.15, 0.9);
+  v.tries[mid] = t + 1;
+  s.stats.haggles++;
+  if (rnd(s) < p) {
+    v.deal[mid] = ((v.deal[mid] || 1) * (1.07 + rnd(s) * 0.05));
+    if (t + 1 >= 2) v.closed[mid] = true;
+    return { ok: true, line: pick(s, m.yes) };
+  }
+  v.deal[mid] = (v.deal[mid] || 1) * 0.97;
+  v.closed[mid] = true;
+  gainRep(s, m.port, -1);
+  return { ok: false, line: pick(s, m.no) };
+}
+function refill(s, where) {
+  let n = 0;
+  for (const it of s.items) if (GOODS[it.g].water && (where === 'all' || it.where === where) && it.fill < GOODS.water.water) { it.fill = GOODS.water.water; n++; }
+  return n;
+}
+
+// ---------- crew ----------
+const crewOk = s => s.crew.filter(c => c.st === 'ok');
+const hasHealer = s => s.crew.some(c => c.heal && c.st !== 'dead');
+const hasBolt = s => s.items.some(i => i.g === 'bolt' && i.where === 'hold');
+function hire(s, hid) {
+  const H = HIRES[hid];
+  if (!H || !inPort(s, H.port)) return fail('Not here.');
+  if (s.crew.some(c => c.id === hid)) return fail(H.name + ' is already aboard.');
+  if (s.silver < H.fee) return fail('You need ' + H.fee + ' dr.');
+  const kit = stow(s, 'kit');
+  if (!kit) return fail('There is no room on the quay or in the hold for ' + H.name + '’s gear.');
+  kit.owner = hid;
+  s.silver -= H.fee; s.stats.spent += H.fee;
+  s.crew.push(Object.assign({ id: hid, hire: true, st: 'ok', paidAt: s.port }, { name: H.name, role: H.role, note: H.note, fight: H.fight, row: H.row, shots: H.shots || 0, heal: !!H.heal }));
+  say(s, H.joined);
+  return { ok: true };
+}
+function dismiss(s, hid, quiet) {
+  const c = s.crew.find(x => x.id === hid && x.hire);
+  if (!c || s.phase !== 'port') return fail('Not now.');
+  s.crew.splice(s.crew.indexOf(c), 1);
+  for (const it of s.items.filter(i => i.g === 'kit' && i.owner === hid)) removeItem(s, it);
+  if (c.paidAt === s.port) { s.silver += HIRES[hid].fee; s.stats.spent -= HIRES[hid].fee; }
+  if (!quiet) say(s, c.name + ' took his gear and went back up the quay.', 'quiet');
+  return { ok: true };
+}
+
+// ---------- food and water ----------
+const mouths = s => s.crew.length;
+function provisions(s) {
+  let food = s.fresh, water = 0;
+  for (const it of s.items) {
+    if (it.where !== 'hold') continue;
+    if (GOODS[it.g].food) food += it.fill; else if (GOODS[it.g].water) water += it.fill;
+  }
+  return { food, water };
+}
+function rowersOf(s) { return crewOk(s).filter(c => c.row > 0); }
+function dailyNeed(s, row) {
+  const n = mouths(s), half = !!s.half;
+  return { food: n * (half ? 0.5 : 1), water: (n + (row ? rowersOf(s).length : 0)) * (half ? 0.6 : 1) };
+}
+function drain(s, kind, amt) {
+  const pool = s.items.filter(i => i.where === 'hold' && GOODS[i.g][kind] && i.fill > 0).sort((a, b) => a.fill - b.fill);
+  for (const it of pool) {
+    if (amt <= 1e-9) break;
+    const d = Math.min(it.fill, amt);
+    it.fill -= d; amt -= d;
+    if (it.fill <= 1e-6) { it.fill = 0; if (kind === 'food') removeItem(s, it); }
+  }
+  return amt;
+}
+function eat(s, f) {
+  const v = s.voyage, need = dailyNeed(s, v.row);
+  let food = need.food * f;
+  const fr = Math.min(s.fresh, food); s.fresh -= fr; food -= fr;
+  const shortF = drain(s, 'food', food), shortW = drain(s, 'water', need.water * f);
+  const wasH = s.hungry, wasT = s.thirsty;
+  s.hungry = shortF > 1e-6; s.thirsty = shortW > 1e-6;
+  if (s.hungry) s.stats.hungry += f;
+  if (s.thirsty) { s.stats.thirsty += f; v.dry += f; }
+  if (s.hungry && !wasH && !v.saidH) { v.saidH = 1; say(s, 'The food ran out. Nobody said anything. Everybody thought it.', 'bad'); }
+  if (s.thirsty && !wasT && !v.saidT) { v.saidT = 1; say(s, 'The water ran out. The rowing slowed, and nobody had breath to spare for complaining.', 'bad'); }
+}
+const strength = s => (s.half ? 0.8 : 1) * (s.hungry ? 0.65 : 1) * (s.thirsty ? 0.45 : 1);
+const rowPower = s => 0.24 * rowersOf(s).reduce((a, c) => a + c.row, 0) * strength(s);
+function speedOf(s, row) {
+  const v = s.voyage, W = WIND[v.wind];
+  return W.sp + ((row == null ? v.row : row) ? rowPower(s) * W.row : 0);
+}
+// When, as a fraction of the daylight, the ship will reach tonight's stop. More than 1 means after dark.
+function eta(s, row) {
+  const v = s.voyage;
+  let clock = v.clock, prog = v.prog;
+  const winds = v.winds;
+  while (prog < v.dist && clock < 2) {
+    let w = v.wind; for (const [at, x] of winds) if (clock >= at) w = x;
+    const sp = WIND[w].sp + ((row == null ? v.row : row) ? rowPower(s) * WIND[w].row : 0);
+    clock += 0.01; prog += sp * 0.01;
+  }
+  return clock;
+}
+
+// ---------- the voyage ----------
+function sailCheck(s) {
+  const dock = dockItems(s);
+  const unhire = dock.filter(i => i.g === 'kit').map(i => i.owner);
+  const goods = dock.filter(i => i.g !== 'kit');
+  const n = Math.max(1, mouths(s) - unhire.length), pv = provisions(s);
+  return { goods, unhire, refund: goods.reduce((a, i) => a + leaveValue(i), 0), crew: n,
+    foodDays: pv.food / n, waterDays: pv.water / n, days: ROUTE_DAYS[s.port === 'rhodes' ? 'out' : 'home'], dest: s.port === 'rhodes' ? 'Halicarnassus' : 'Rhodes' };
+}
+const leaveValue = it => (isSupply(it) && it.fill < GOODS[it.g][GOODS[it.g].food ? 'food' : 'water']) ? 0 : Math.floor(GOODS[it.g].value / 2);
+function setSail(s) {
+  if (s.phase !== 'port' || s.home) return fail('Not now.');
+  const ck = sailCheck(s);
+  for (const it of ck.goods) { removeItem(s, it); s.silver += leaveValue(it); }
+  for (const id of ck.unhire) dismiss(s, id, true);
+  if (ck.goods.length) say(s, 'What would not fit went back to the sellers, at half what it cost.', 'quiet');
+  if (s.port === 'halic') proxenosCheck(s);
+  const route = s.port === 'rhodes' ? 'out' : 'home';
+  s.voyage = { route, queue: ROUTES[route].slice(), day: null, dist: 1, prog: 0, clock: 0, wind: 'light', winds: [], row: false, fired: {}, dry: 0, from: s.port };
+  s.port = null; s.visit = null;
+  s.phase = 'sea';
+  nextDay(s);
+  return { ok: true };
+}
+function proxenosCheck(s) {
+  if (s.proxenos.halic || (s.rep.halic || 0) < PROXENOS_REP) return;
+  let best = null, bn = 0;
+  for (const id in s.trades) if (MERCHANTS[id].port === 'halic' && s.trades[id] > bn) { best = id; bn = s.trades[id]; }
+  if (!best) return;
+  s.proxenos.halic = best;
+  say(s, MERCHANTS[best].name + ' came down to the quay to see them off, and said Ariston would always have a friend in Halicarnassus. Among Greeks, that is a serious promise.');
+}
+function nextDay(s) {
+  const v = s.voyage;
+  v.day = v.queue.shift();
+  const D = DAYS[v.day];
+  v.dist = D.dist; v.prog = 0; v.clock = 0; v.fired = {}; v.dry = 0; v.saidH = 0; v.saidT = 0;
+  v.winds = D.wind.map(w => w.slice()); v.wind = v.winds[0][1];
+  s.dayN++;
+}
+function addWind(v, at, w) { v.winds = v.winds.filter(x => x[0] < at).concat([[at, w]]); }
+function setRow(s, on) {
+  if (s.phase !== 'sea') return;
+  s.voyage.row = !!on;
+  if (on) sayOnce(s, 'row', 'Everyone took an oar except Glaukos, who steered, and Ariston, who worried.');
+}
+function setHalf(s, on) {
+  s.half = !!on;
+  if (on && s.phase === 'sea') sayOnce(s, 'half', 'Ariston cut the rations by half. The crew agreed this was wise, and hated it.');
+}
+function seaStep(s, dt) {
+  if (s.phase !== 'sea' || s.pending) return;
+  const v = s.voyage, D = DAYS[v.day], f = dt / DAY_SECS;
+  v.clock += f;
+  for (const [at, w] of v.winds) if (v.clock >= at) v.wind = w;
+  v.prog += speedOf(s) * f;
+  eat(s, f);
+  for (const L of D.lines || []) {
+    const k = 'l' + L[0];
+    if (!v.fired[k] && v.clock >= L[0]) { v.fired[k] = 1; say(s, L[1], L[2] || ''); }
+  }
+  if (D.rough && !v.fired.rough && v.clock >= D.rough[0]) {
+    v.fired.rough = 1;
+    const had = s.items.some(i => i.where === 'hold' && GOODS[i.g].fragile);
+    say(s, 'The sea was short and steep all morning, and the ship rolled in it.');
+    for (const l of brokeLines(s, roughSea(s, D.rough[1]), had)) say(s, l, 'bad');
+  }
+  for (const E of D.events || []) {
+    const k = 'e' + E[0];
+    if (!v.fired[k] && v.clock >= E[0]) {
+      v.fired[k] = 1;
+      const ev = EVENTS[E[1]];
+      if (ev.start) ev.start(s);
+      s.pending = E[1];
+      return;
+    }
+  }
+  if (v.prog >= v.dist) { arrive(s); return; }
+  if (v.clock >= 1) nightAtSea(s);
+}
+function tick(s, dt) { while (dt > 1e-6 && s.phase === 'sea' && !s.pending) { const d = Math.min(dt, 0.25); seaStep(s, d); dt -= d; } }
+
+function arrive(s) {
+  const v = s.voyage, to = DAYS[v.day].to;
+  if (STOPS[to].port) return arrivePort(s, to);
+  s.phase = 'camp';
+  s.camp = { stop: to, did: {}, n: {}, from: s.log.length };
+  for (const l of CAMPS[to].lines(s)) say(s, l);
+  nightFalls(s);
+}
+function nightAtSea(s) {
+  const v = s.voyage;
+  s.stats.nights++;
+  s.phase = 'camp';
+  s.camp = { stop: 'atsea', did: {}, n: {}, toward: DAYS[v.day].to, from: s.log.length };
+  say(s, 'Dark came before they reached ' + STOPS[DAYS[v.day].to].name + '. They anchored off a rocky shore and spent the night at sea. Nobody slept much.', 'bad');
+  nightFalls(s);
+}
+function nightFalls(s) {
+  const v = s.voyage;
+  if (v.dry > 0.25) {
+    const c = crewOk(s).filter(x => x.id !== 'ariston');
+    if (c.length) { const who = pick(s, c); who.st = 'sick'; say(s, 'Thirst made ' + who.name + ' sick. He lay in the bottom of the boat and did not row.', 'bad'); }
+  }
+  v.dry = 0;
+}
+function campAct(s, id) {
+  if (s.phase !== 'camp') return fail('Not now.');
+  const c = s.camp, A = CAMPS[c.stop].actions.find(a => a.id === id);
+  if (!A) return fail('Not here.');
+  if (A.once && c.did[id]) return fail('Done.');
+  if (A.limit && (c.n[id] || 0) >= A.limit) return fail('They have no more.');
+  if (A.price && s.silver < A.price) return fail('You need ' + A.price + ' dr.');
+  if (A.good && !stow(s, A.good)) return fail('There is no room left on the beach or in the hold.');
+  if (A.refill) refill(s, 'hold');
+  if (A.fish) s.fresh += mouths(s);
+  if (A.price) { s.silver -= A.price; s.stats.spent += A.price; }
+  c.did[id] = 1; c.n[id] = (c.n[id] || 0) + 1;
+  if (A.line && c.n[id] === 1) say(s, A.line);
+  return { ok: true };
+}
+const needsRoute = s => s.phase === 'camp' && s.camp.stop === 'triopion' && s.voyage.route === 'home';
+function sleep(s, route) {
+  if (s.phase !== 'camp') return fail('Not now.');
+  const askRoute = needsRoute(s);
+  if (askRoute && route !== 'coast' && route !== 'open') return fail('Choose a way home first.');
+  const c = s.camp, v = s.voyage;
+  const left = dockItems(s);
+  for (const it of left) {
+    removeItem(s, it);
+    if (it.g === 'kit') { const h = s.crew.find(x => x.id === it.owner); if (h) { s.crew.splice(s.crew.indexOf(h), 1); say(s, h.name + ' would not sail without his gear, and stayed on the beach.', 'bad'); } }
+  }
+  if (left.some(i => i.g !== 'kit')) say(s, 'They left what would not fit on the beach.', 'quiet');
+  morning(s);
+  s.camp = null; s.phase = 'sea';
+  if (c.stop === 'atsea') {
+    v.clock = 0; v.winds = [[0, 'light']]; v.wind = 'light'; v.dry = 0; s.dayN++;
+    say(s, 'At first light they weighed anchor and went on.');
+  } else {
+    if (askRoute) { v.route = route; v.queue = ROUTES[route].slice(); }
+    nextDay(s);
+  }
+  return { ok: true };
+}
+function morning(s) {
+  const hurt = s.crew.filter(c => c.st === 'wounded' || c.st === 'sick');
+  const doc = s.crew.find(c => c.heal);
+  if (hurt.length && doc) {
+    for (const c of hurt) c.st = 'ok';
+    say(s, doc.name + ' changed the dressings and mixed something bitter. By morning everyone could pull an oar again.');
+  }
+}
+function arrivePort(s, port) {
+  s.phase = 'port'; s.port = port; s.camp = null;
+  s.voyage = null; s.hungry = false; s.thirsty = false; s.fresh = 0;
+  for (const c of s.crew) if (c.st !== 'ok') c.st = 'ok';
+  openVisit(s, port);
+  if (port === 'halic') {
+    s.flags.reachedHalic = true;
+    say(s, 'Halicarnassus was built around its harbour like a theatre around its stage.');
+    say(s, 'The tomb of King Mausolus sat in the middle, where the best seat would be. He had been dead for sixty years and was still the most important person in town.');
+    say(s, 'Ariston tied up at the quay and went to find out who wanted Rhodian wine.');
+  } else {
+    s.home = true;
+    say(s, 'They came in past the moles of Rhodes. The god had grown while they were away. He had ankles now, and the beginnings of shins.');
+    if (s.flags.beatPirates) {
+      s.silver += BOUNTY; s.stats.earned += BOUNTY; gainRep(s, 'rhodes', 5);
+      say(s, 'Word of the hemiolia had come in ahead of them. The harbour officials paid a bounty of ' + BOUNTY + ' drachmas, and several people bought Ariston a drink.', 'good');
+    }
+    say(s, 'Antimachos the banker was waiting on the quay. Bankers always know when ships come in.');
+  }
+}
+
+// ---------- weather and breakage ----------
+function roughSea(s, sev) {
+  const broke = [];
+  for (const it of atRisk(s)) if (rnd(s) < sev) { broke.push(it); removeItem(s, it); }
+  s.stats.broken += broke.length;
+  return broke;
+}
+function listOf(items) {
+  const by = {};
+  for (const i of items) by[i.g] = (by[i.g] || 0) + 1;
+  const parts = Object.keys(by).map(g => { const G = GOODS[g]; return by[g] === 1 ? (G.the || (/^[aeiou]/.test(G.unit) ? 'an ' : 'a ') + G.unit + ' of ' + G.of) : num(by[g]) + ' ' + G.units + ' of ' + G.of; });
+  return parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0] || 'nothing';
+}
+function brokeLines(s, broke, had) {
+  if (!had) return ['There was nothing aboard that could break, except the crew, and they held.'];
+  if (!broke.length) return ['Nothing broke. Ariston decided to call that skill.'];
+  return ['When it was over, ' + listOf(broke) + ' had broken. Glaukos said he had known it would happen.'];
+}
+
+// ---------- pirates ----------
+const cargoValue = s => s.items.filter(i => i.where === 'hold' && isCargo(i)).reduce((a, i) => a + GOODS[i.g].value, 0);
+function runChance(s) {
+  const rowers = rowersOf(s).reduce((a, c) => a + c.row, 0) * strength(s);
+  return clamp(0.12 + 0.07 * rowers + (s.voyage.wind === 'fair' ? 0.1 : 0) - 0.25 * holdUsed(s) / holdCells(s), 0.05, 0.75);
+}
+function volleyHits(s) {
+  let hits = hasBolt(s) ? 2 : 0;
+  for (const c of crewOk(s)) if (c.shots) hits += Math.round(c.shots * strength(s));
+  return hits;
+}
+const meleeOf = s => crewOk(s).reduce((a, c) => a + c.fight, 0) * strength(s);
+function winChance(s) {
+  const P = s.pirates.n, left = Math.max(0, P - volleyHits(s));
+  const b0 = hasBolt(s) ? 0.2 : 0, brk = b0 + (1 - b0) * (left <= P * 0.6 ? 0.6 : 0);
+  const m = meleeOf(s);
+  return brk + (1 - brk) * m / (m + left * 1.05);
+}
+function plunder(s, frac) {
+  const total = cargoValue(s);
+  if (total < 20) {
+    const take = Math.min(s.silver, Math.round(45 * frac));
+    s.silver -= take;
+    return 'his purse instead, with ' + take + ' drachmas in it';
+  }
+  const pool = s.items.filter(i => i.where === 'hold' && isCargo(i)).sort((a, b) => GOODS[b.g].value - GOODS[a.g].value);
+  const took = [];
+  let got = 0;
+  for (const it of pool) { if (got >= total * frac) break; took.push(it); got += GOODS[it.g].value; removeItem(s, it); }
+  s.flags.plundered = (s.flags.plundered || 0) + got;
+  return listOf(took);
+}
+function woundCrew(s, n) {
+  const out = [];
+  for (let k = 0; k < n; k++) {
+    const pool = crewOk(s);
+    if (!pool.length) break;
+    const c = pick(s, pool);
+    c.st = 'wounded'; out.push(c);
+  }
+  return out;
+}
+function woundLines(s, hurt) {
+  if (!hurt.length) return ['Nobody was badly hurt, which nobody could quite believe.'];
+  const names = hurt.map(c => c.name);
+  const who = names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
+  const doc = s.crew.find(c => c.heal);
+  if (doc) return [who + (hurt.length > 1 ? ' were' : ' was') + ' hurt. ' + doc.name + ' went from man to man with his needle and his bad jokes, and nobody died.'];
+  const lines = [who + (hurt.length > 1 ? ' were' : ' was') + ' hurt. There was no doctor aboard, so they did what they could.'];
+  const where = STOPS[DAYS[s.voyage.day].to].name;
+  for (const c of hurt) {
+    if (c.id === 'ariston' || rnd(s) >= 0.4) continue;
+    s.crew.splice(s.crew.indexOf(c), 1);
+    s.lost.push({ id: c.id, name: c.name, where });
+    if (c.hire) for (const it of s.items.filter(i => i.g === 'kit' && i.owner === c.id)) removeItem(s, it);
+    lines.push('That night ' + c.name + ' died of his wound. They buried him at ' + where + ', with a coin for the ferryman.');
+  }
+  return lines;
+}
+function fight(s) {
+  const lines = [], P0 = s.pirates.n;
+  let P = P0, broke = false;
+  if (hasBolt(s)) {
+    P -= 2;
+    lines.push('The bolt-thrower went off with a crack like a door slamming. The bolt went through the hemiolia’s rail and the man behind it.');
+    if (rnd(s) < 0.2) broke = true;
+  }
+  for (const c of crewOk(s)) {
+    if (!c.shots) continue;
+    P -= Math.round(c.shots * strength(s));
+    lines.push(HIRES[c.id] ? HIRES[c.id].shot : c.name + ' shot at them.');
+  }
+  P = Math.max(0, P);
+  if (!broke && P <= P0 * 0.6 && rnd(s) < 0.6) broke = true;
+  if (broke) {
+    lines.push('That was not what they had come for. The hemiolia backed her oars and turned away to look for an easier ship.');
+    s.flags.beatPirates = true; s.flags.pirates = 'drove off';
+    return lines;
+  }
+  lines.push('Then she was alongside, and they came over the rail.');
+  const m = meleeOf(s), win = rnd(s) < m / (m + P * 1.05);
+  const hurt = woundCrew(s, win ? (P >= 6 ? 2 : 1) : 3);
+  if (win) {
+    lines.push('It was short and ugly. When it was over the pirates were back in their own ship, rowing away with fewer men than they had come with.');
+    s.flags.beatPirates = true; s.flags.pirates = 'beat';
+  } else {
+    lines.push('There were too many of them. They took ' + plunder(s, 0.6) + ', and left the rest, which was mostly the crew.');
+    s.flags.pirates = 'robbed';
+  }
+  return lines.concat(woundLines(s, hurt));
+}
+function odds(p) { return p >= 0.7 ? 'good' : p >= 0.45 ? 'even' : p >= 0.25 ? 'poor' : 'very poor'; }
+function crewVoice(s, kind) {
+  const p = kind === 'run' ? runChance(s) : winChance(s), o = odds(p);
+  if (kind === 'run') return { good: 'Glaukos: “She’s fast, but so are we, today.”', even: 'Glaukos: “Maybe. If Poseidon likes us.”', poor: 'Glaukos: “Not this loaded. Not from a hemiolia.”', 'very poor': 'Glaukos: “Run? From that? In this?”' }[o];
+  const kydas = s.crew.find(c => c.id === 'kydas' && c.st === 'ok');
+  if (kydas && o !== 'very poor') return 'Kydas counts them: “' + cap(num(s.pirates.n)) + '. I can count to ' + num(s.pirates.n) + '.”';
+  return { good: 'Pamphilos picks up a boat hook and says nothing, which for him is a speech.', even: 'Nikias and Lysis agree it could go either way, and then argue about which.', poor: 'Mikkos asks if he is allowed to hide. Nobody says no.', 'very poor': cap(num(crewOk(s).length)) + ' of them, against ' + num(s.pirates.n) + ' pirates.' }[o];
+}
+const EVENTS = {
+  squall: {
+    title: 'A squall from the north',
+    text: s => ['Around midday the wind went round to the north. The sky over Knidos turned the colour of a bruise.']
+      .concat(atRisk(s).length ? ['Ariston thought about the fragile cargo, and about what it had cost.'] : []),
+    choices: s => [
+      { id: 'ride', label: 'Reef the sail and ride it out', hint: atRisk(s).length ? cap(num(atRisk(s).length)) + ' fragile ' + (atRisk(s).length > 1 ? 'things touch' : 'thing touches') + ' nothing soft, and may break.' : 'Your fragile cargo is packed safe.' },
+      { id: 'shelter', label: 'Run back to the lee of Symi', hint: 'Nothing breaks, but you lose half the day. You may have to row to arrive before dark.' },
+    ],
+    resolve(s, id) {
+      const v = s.voyage;
+      if (id === 'ride') {
+        const had = s.items.some(i => i.where === 'hold' && GOODS[i.g].fragile);
+        addWind(v, v.clock, 'storm'); addWind(v, v.clock + 0.12, 'fair');
+        return ['Ariston had the sail reefed, and they rode it out with spray coming over the bow.'].concat(brokeLines(s, roughSea(s, 0.6), had));
+      }
+      v.prog = Math.max(0, v.prog - 0.3); addWind(v, v.clock, 'light');
+      return ['They ran back into the lee of Symi and waited it out. Nothing broke, but half the day was gone.'];
+    },
+  },
+  pirates: {
+    title: 'A hemiolia',
+    start(s) { s.pirates = { n: 11 + Math.floor(rnd(s) * 3) }; },
+    text: () => ['A long, low ship came out from behind Kos, rowing hard.',
+      'As she came on, half her rowers left their oars and picked up swords. That is what a hemiolia is for.',
+      'Glaukos said the word nobody wanted to say.'],
+    choices: s => [
+      { id: 'run', label: 'Run for it', hint: crewVoice(s, 'run') },
+      { id: 'pay', label: 'Offer them part of the cargo', hint: cargoValue(s) >= 20 ? 'They will take about a third of the cargo.' : 'There is little cargo. They will want silver.' },
+      { id: 'fight', label: 'Fight', hint: crewVoice(s, 'fight') },
+    ],
+    resolve(s, id) {
+      if (id === 'run') {
+        if (rnd(s) < runChance(s)) {
+          s.flags.pirates = 'outran';
+          return ['Glaukos put the steering oar over and everyone rowed like men who had seen pirates.', 'The hemiolia gave up at last, and went looking for someone slower.'];
+        }
+        s.pending = 'caught';
+        return ['They rowed until their hands bled. The hemiolia was faster. Hemioliai always are.'];
+      }
+      if (id === 'pay') {
+        s.flags.pirates = 'paid';
+        return ['Ariston offered them a share. Pirates like a man who saves them trouble.', 'They took ' + plunder(s, 1 / 3) + ', and rowed away almost cheerfully.'];
+      }
+      return fight(s);
+    },
+  },
+  caught: {
+    title: 'Caught',
+    text: () => ['The hemiolia came up alongside. A man in her bow shouted terms. They were worse terms than before.'],
+    choices: s => [
+      { id: 'pay', label: 'Give them what they ask', hint: cargoValue(s) >= 20 ? 'About half the cargo.' : 'Your silver.' },
+      { id: 'fight', label: 'Fight', hint: crewVoice(s, 'fight') },
+    ],
+    resolve(s, id) {
+      if (id === 'pay') {
+        s.flags.pirates = 'paid';
+        return ['Ariston gave them what they asked for.', 'They took ' + plunder(s, 0.5) + '. One of them waved as they rowed off.'];
+      }
+      return fight(s);
+    },
+  },
+};
+function resolveEvent(s, choice) {
+  const id = s.pending;
+  if (!id) return [];
+  const E = EVENTS[id];
+  const ch = E.choices(s).find(c => c.id === choice);
+  if (!ch) return [];
+  s.pending = null;
+  say(s, E.title + ': ' + ch.label + '.', 'choice');
+  const lines = E.resolve(s, choice) || [];
+  for (const l of lines) say(s, l, 'told');
+  return lines;
+}
+
+// ---------- coming home ----------
+function repay(s) {
+  if (s.phase !== 'port' || !s.home || s.loan.paid) return fail('Not now.');
+  const pay = Math.min(s.silver, s.loan.due);
+  s.silver -= pay; s.loan.paid = true; s.loan.paidAmt = pay; s.debt = s.loan.due - pay;
+  say(s, s.debt ? 'Ariston paid Antimachos what he had. The banker wrote the rest on a wax tablet. Ariston would see that tablet again.' : 'Ariston paid Antimachos his 195 drachmas. The banker counted them twice, and smiled once.');
+  s.summary = summarize(s);
+  s.phase = 'summary';
+  return { ok: true };
+}
+const RATINGS = [[180, 'Rhodes will hear about this'], [100, 'A good trader'], [40, 'A decent first season'], [0, 'He broke even'], [-1e9, 'A hard first season']];
+function summarize(s) {
+  const profit = s.silver - OWN_SILVER - s.debt;
+  return {
+    silver: s.silver, paid: s.loan.paidAmt, debt: s.debt, profit,
+    cargo: s.items.filter(i => i.where === 'hold' && isCargo(i)).reduce((a, i) => a + GOODS[i.g].value, 0),
+    lost: s.lost.slice(), pirates: s.flags.pirates || 'none', broken: s.stats.broken, rep: Object.assign({}, s.rep),
+    friend: s.proxenos.halic ? MERCHANTS[s.proxenos.halic].name : null, days: s.dayN, hermes: s.flags.hermes || null,
+    rating: RATINGS.find(r => profit >= r[0])[1],
+  };
+}
+// ===== ENGINE END =====
+
+// ---------- the page ----------
+const $ = q => document.querySelector(q);
+const els = {
+  app: $('#app'), stage: $('#stage'), scene: $('#scene'), hotspots: $('#hotspots'), purse: $('#purse'), silver: $('#silver'), coinImg: $('#coinImg'),
+  where: $('#where'), chips: $('#chips'), banner: $('#banner'), strip: $('#strip'), stripText: $('#stripText'), meander: $('#meander'),
+  panel: $('#panel'), tabs: $('#tabs'), mainIcon: $('#mainIcon'), mainLabel: $('#mainLabel'),
+  sheet: $('#sheet'), sheetCard: $('#sheetCard'), theater: $('#theater'), tcanvas: $('#tcanvas'), tTop: $('#tTop'),
+  tText: $('#tText'), tActions: $('#tActions'), tHint: $('#tHint'), toast: $('#toast'), soundBtn: $('#soundBtn'), menuBtn: $('#menuBtn'),
+};
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const setText = (el, v) => { if (el.textContent !== v) el.textContent = v; };
+const setHTML = (el, v) => { if (el._html !== v) { el._html = v; el.innerHTML = v; } };
+const dr = n => n + ' dr';
+
+// ---------- colour ----------
+const RGB = new Map();
+function rgbOf(c) { let v = RGB.get(c); if (!v) { const n = parseInt(c.slice(1), 16); v = [n >> 16 & 255, n >> 8 & 255, n & 255]; RGB.set(c, v); } return v; }
+function mix(a, b, t) {
+  const A = rgbOf(a), B = rgbOf(b), f = i => Math.round(A[i] + (B[i] - A[i]) * t);
+  return '#' + ((1 << 24) | (f(0) << 16) | (f(1) << 8) | f(2)).toString(16).slice(1);
+}
+const shade = (c, k) => k >= 0 ? mix(c, '#ffffff', k) : mix(c, '#000000', -k);
+
+// ---------- sprites: small pictures drawn pixel by pixel, outlined, and cached ----------
+function canvasOf(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function sprite(w, h, draw, edge) {
+  const c = canvasOf(w, h), g = c.getContext('2d');
+  const P = (x, y, col, ww, hh) => { g.fillStyle = col; g.fillRect(x, y, ww || 1, hh || 1); };
+  draw(P, g);
+  if (edge) outline(c, edge);
+  return c;
+}
+function outline(c, col) {
+  const g = c.getContext('2d'), w = c.width, h = c.height, img = g.getImageData(0, 0, w, h), a = img.data, rgb = rgbOf(col);
+  const solid = (x, y) => x >= 0 && y >= 0 && x < w && y < h && a[(y * w + x) * 4 + 3] > 0;
+  const mark = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!solid(x, y) && (solid(x - 1, y) || solid(x + 1, y) || solid(x, y - 1) || solid(x, y + 1))) mark.push((y * w + x) * 4);
+  }
+  for (const k of mark) { a[k] = rgb[0]; a[k + 1] = rgb[1]; a[k + 2] = rgb[2]; a[k + 3] = 255; }
+  g.putImageData(img, 0, 0);
+}
+// A turned vessel: one row per entry in widths, centred on cx, lit from the left.
+function lathe(P, cx, y0, widths, base, light, dark) {
+  widths.forEach((w, i) => {
+    if (!w) return;
+    const x0 = Math.round(cx - w / 2);
+    for (let x = 0; x < w; x++) { const t = x / w; P(x0 + x, y0 + i, t < 0.28 ? light : t > 0.7 ? dark : base); }
+  });
+}
+function disc(P, cx, cy, r, base, light, dark) {
+  for (let y = Math.floor(cy - r); y <= Math.ceil(cy + r); y++) for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++) {
+    const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+    if (dx * dx + dy * dy > r * r) continue;
+    const d = dx + dy;
+    P(x, y, d < -r * 0.55 ? light : d > r * 0.6 ? dark : base);
+  }
+}
+const INK = '#24130a';
+const SPR = {};
+function itemSprite(it) { const key = it.g === 'kit' ? 'kit_' + it.owner : it.g; return SPR[key] || (SPR[key] = makeItemSprite(key)); }
+function makeItemSprite(key) {
+  switch (key) {
+    case 'wine': return sprite(12, 24, P => {
+      const B = '#c8693f', L = '#e8996a', D = '#8e4426';
+      lathe(P, 6, 1, [4, 4, 2, 2, 2, 2, 6, 8, 8, 8, 8, 8, 8, 8, 6, 6, 6, 4, 4, 2, 2, 2], B, L, D);
+      P(5, 1, '#3a1a0e', 2, 1);
+      for (let y = 1; y <= 6; y++) { P(3, y, y < 3 ? L : B); P(8, y, y < 3 ? B : D); }
+      P(4, 3, B); P(7, 3, D); P(8, 4, '#4a2010'); P(3, 9, L, 1, 5);
+      P(2, 11, '#a85232', 8, 1);
+    }, INK);
+    case 'water': return sprite(12, 12, P => {
+      const B = '#d6a874', L = '#f0cf9c', D = '#a87a48';
+      lathe(P, 6, 1, [6, 4, 6, 8, 10, 10, 10, 10, 8, 6], B, L, D);
+      P(4, 1, '#3f8fb8', 4, 1); P(4, 1, '#9fd6ee');
+      for (let x = 2; x < 10; x += 2) P(x, 6, '#8a5a32');
+    }, INK);
+    case 'barley': return sprite(12, 12, P => {
+      const B = '#c9a46a', L = '#e6c891', D = '#957044';
+      lathe(P, 6, 3, [4, 6, 8, 10, 10, 10, 10, 8], B, L, D);
+      P(4, 3, '#6e5028', 4, 1);
+      P(3, 2, '#e8c35a'); P(4, 1, '#e8c35a'); P(6, 1, '#e8c35a'); P(7, 1, '#f2d77a'); P(5, 2, '#c9a040'); P(6, 2, '#c9a040'); P(8, 2, '#e8c35a');
+      P(4, 7, D); P(7, 8, D); P(5, 9, D); P(8, 6, D);
+    }, INK);
+    case 'figs': return sprite(12, 12, P => {
+      for (let y = 6; y <= 9; y++) for (let x = 1; x <= 10; x++) P(x, y, (x + y) % 2 ? '#9a6a3a' : '#7a5028');
+      P(1, 6, '#c08a50', 10, 1); P(2, 10, '#6a4420', 8, 1);
+      const fig = (x, y) => { P(x, y, '#6e3a52', 3, 3); P(x, y, '#a2627e'); P(x + 2, y + 2, '#4a2238'); P(x + 1, y - 1, '#6f8a3a'); };
+      fig(1, 3); fig(5, 2); fig(8, 3);
+    }, INK);
+    case 'sponge': return sprite(12, 12, P => {
+      const B = '#d9a441', L = '#f2c96a', D = '#a8762a';
+      disc(P, 4.5, 7.5, 3.2, B, L, D); disc(P, 7.5, 5, 2.8, B, L, D); disc(P, 7.6, 8.4, 2.5, B, L, D);
+      for (const [x, y] of [[3, 7], [5, 9], [8, 4], [7, 8], [9, 6], [4, 5], [2, 9]]) P(x, y, '#7a521c');
+    }, INK);
+    case 'cups': return sprite(12, 12, P => {
+      P(1, 6, '#8a5a34', 10, 5); P(1, 7, '#a8744a', 10, 1); P(1, 9, '#a8744a', 10, 1); P(1, 10, '#6a4224', 10, 1);
+      P(1, 6, '#6a4224', 1, 5); P(10, 6, '#6a4224', 1, 5);
+      for (let x = 1; x <= 10; x++) if (x % 3) P(x, 5, '#e3c46a');
+      const cup = x => { P(x, 2, '#6a5e52', 4, 1); P(x, 3, '#1c1612', 4, 1); P(x + 1, 3, '#c8623a'); P(x + 1, 4, '#1c1612', 2, 1); };
+      cup(1); cup(6);
+    }, INK);
+    case 'honey': return sprite(12, 12, P => {
+      lathe(P, 6, 4, [8, 10, 10, 10, 10, 8, 6], '#a0602e', '#c98048', '#6e3e1a');
+      P(4, 1, '#efe3cc', 4, 1); P(3, 2, '#efe3cc', 6, 1); P(2, 3, '#ded0b4', 8, 1);
+      P(3, 4, '#b8423a', 6, 1);
+      P(8, 5, '#f4b838'); P(8, 6, '#f0b030'); P(8, 7, '#e8a020');
+    }, INK);
+    case 'cloth': return sprite(24, 12, P => {
+      P(3, 2, '#efe6d6', 19, 8); P(3, 3, '#ffffff', 19, 1); P(3, 8, '#cbbfa8', 19, 2);
+      for (const x of [7, 16]) { P(x, 2, '#8e4a8c', 2, 8); P(x, 8, '#6a3068', 2, 2); P(x, 3, '#b070ae', 2, 1); }
+      P(1, 3, '#d9ccb4', 3, 6); P(2, 2, '#d9ccb4', 1, 8); P(2, 4, '#b8aa92', 1, 4); P(1, 5, '#a89a82', 1, 2);
+      P(21, 2, '#cbbfa8', 1, 8);
+    }, INK);
+    case 'scent': return sprite(12, 12, P => {
+      P(1, 9, '#8a6440', 10, 1); P(1, 10, '#6b4a2e', 10, 1);
+      const flask = (x, top, body, light) => { P(x, top, '#3a2a1e', 2, 1); P(x, top + 1, body, 2, 8 - top); P(x, top + 1, light, 1, 8 - top); };
+      flask(2, 3, '#efe3cc', '#ffffff'); P(2, 6, '#2a2420', 2, 1);
+      flask(5, 1, '#d98a8a', '#f0b8b0'); P(5, 5, '#8a3a3a', 2, 1);
+      flask(8, 2, '#9a7ac0', '#c4aee6');
+    }, INK);
+    case 'marble': return sprite(24, 24, P => {
+      for (let i = 0; i < 4; i++) P(5 - i, 3 + i, '#fbf8f1', 16, 1);
+      P(2, 7, '#e6e0d4', 16, 14); P(2, 7, '#fffdf8', 16, 1);
+      for (let i = 0; i < 4; i++) P(18 + i, 6 - i, '#b9b2a4', 1, 15);
+      for (const [x, y] of [[4, 10], [5, 11], [6, 11], [7, 12], [8, 13], [11, 15], [12, 16], [13, 16], [14, 17], [3, 17], [4, 18], [15, 9], [16, 10], [19, 9], [20, 11]]) P(x, y, '#aaa497');
+      P(2, 20, '#cfc8ba', 16, 1);
+    }, INK);
+    case 'hermes': return sprite(12, 12, P => {
+      const B = '#b0773a', L = '#e0a860', D = '#7a4a22';
+      P(4, 1, B, 4, 1); P(3, 2, D, 6, 1); P(2, 1, L); P(9, 1, L);
+      P(5, 3, '#c98a4a', 2, 1);
+      P(4, 4, B, 4, 4); P(4, 4, L, 1, 4); P(7, 4, D, 1, 4);
+      P(4, 8, D, 1, 2); P(6, 8, D, 1, 2);
+      P(8, 3, '#e8c060', 1, 6); P(9, 3, '#e8c060');
+      P(3, 10, '#7a6a5a', 6, 1);
+    }, INK);
+    case 'bolt': return sprite(12, 12, P => {
+      P(5, 1, '#d0d4d8'); P(6, 1, '#9aa0a6'); P(5, 2, '#e0d0a8', 2, 1);
+      P(5, 3, '#8a5a34', 2, 7); P(5, 3, '#a8744a', 1, 7);
+      P(1, 3, '#3a2a1e', 10, 1); P(1, 4, '#3a2a1e'); P(10, 4, '#3a2a1e');
+      for (const [x, y] of [[2, 5], [3, 6], [4, 7], [9, 5], [8, 6], [7, 7]]) P(x, y, '#efe3cc');
+      P(3, 9, '#5a3a22', 6, 1); P(2, 9, '#9aa0a6'); P(9, 9, '#9aa0a6'); P(4, 10, '#4a3020', 4, 1);
+    }, INK);
+    case 'kit_philon': return sprite(12, 12, P => {
+      lathe(P, 6, 4, [6, 8, 8, 8, 8, 8, 6], '#8a5a34', '#a8744a', '#6a4224');
+      P(3, 4, '#a06a3a', 6, 2); P(3, 6, '#5a3a20', 6, 1);
+      P(8, 8, '#c9ced3'); P(9, 8, '#9aa0a6'); P(7, 9, '#9aa0a6');
+      P(1, 1, '#e8dcc0'); P(2, 2, '#e8dcc0'); P(3, 3, '#e8dcc0'); P(4, 3, '#e8dcc0');
+    }, INK);
+    case 'kit_kydas': return sprite(12, 12, P => {
+      P(3, 4, '#6b4a2e', 5, 7); P(3, 4, '#8a6440', 1, 7); P(3, 6, '#c8623a', 5, 1); P(4, 8, '#e3b453'); P(6, 8, '#e3b453');
+      P(4, 1, '#efe3cc'); P(4, 2, '#d9c9a0', 1, 2); P(6, 2, '#c8623a'); P(6, 3, '#d9c9a0');
+      P(8, 2, '#3a2a1e'); P(9, 3, '#3a2a1e', 1, 6); P(8, 9, '#3a2a1e');
+    }, INK);
+    case 'kit_lykos': return sprite(12, 12, P => {
+      P(1, 5, '#9a6a3a', 10, 5); P(1, 3, '#b98a55', 10, 2); P(1, 10, '#6a4424', 10, 1); P(1, 4, '#8a5a30', 10, 1);
+      P(6, 3, '#e3b453');
+      P(6, 5, '#efe3cc', 1, 5);
+      P(5, 6, '#6fa03e'); P(7, 7, '#6fa03e'); P(5, 8, '#6fa03e'); P(7, 9, '#5a8a30');
+    }, INK);
+  }
+  return sprite(12, 12, P => P(2, 2, '#888888', 8, 8), INK);
+}
+const ICONS = {};
+function itemIcon(g, owner) { const k = g === 'kit' ? 'kit_' + owner : g; return ICONS[k] || (ICONS[k] = itemSprite({ g, owner }).toDataURL()); }
+
+// Faces: built from a few features, so every merchant and sailor looks like somebody.
+const CREW_LOOK = {
+  ariston: { skin: '#c99062', hair: '#3a2618', style: 'short', beard: 0, robe: '#3f6f8e', trim: '#efe3cc' },
+  glaukos: { skin: '#b07a4c', hair: '#d8d2c4', style: 'bald', beard: 2, robe: '#7a5a3a', trim: '#c8623a' },
+  nikias: { skin: '#b9804e', hair: '#2a1d14', style: 'curly', beard: 1, robe: '#9a6a3a', trim: '#efe3cc' },
+  lysis: { skin: '#b9804e', hair: '#2a1d14', style: 'short', beard: 1, robe: '#6b7a44', trim: '#efe3cc' },
+  pamphilos: { skin: '#a8703f', hair: '#1b130e', style: 'short', beard: 2, robe: '#5a4a3a', trim: '#b0773a' },
+  mikkos: { skin: '#cf9a6a', hair: '#5a3a22', style: 'curly', beard: 0, robe: '#c8623a', trim: '#efe3cc' },
+  philon: { skin: '#c48a58', hair: '#4a3020', style: 'short', beard: 0, robe: '#8a7a4a', trim: '#efe3cc', hat: 'band' },
+  kydas: { skin: '#a96f42', hair: '#120c08', style: 'long', beard: 1, robe: '#2f4a3a', trim: '#c8623a' },
+  lykos: { skin: '#cfa074', hair: '#6a5a4a', style: 'short', beard: 2, robe: '#efe6d6', trim: '#3f6f8e' },
+};
+const lookOf = id => (MERCHANTS[id] && MERCHANTS[id].look) || CREW_LOOK[id];
+const FACES = {};
+function faceURL(id) { return FACES[id] || (FACES[id] = makeFace(lookOf(id)).toDataURL()); }
+function makeFace(L) {
+  return sprite(16, 16, P => {
+    const sk = L.skin, skD = shade(sk, -0.2), skL = shade(sk, 0.14), hair = L.hair, hairD = shade(hair, -0.25);
+    P(1, 14, L.robe, 14, 2); P(2, 13, L.robe, 12, 1); P(3, 12, L.robe, 10, 1);
+    P(4, 12, shade(L.robe, 0.16), 1, 4); P(11, 13, shade(L.robe, -0.2), 1, 3);
+    P(7, 12, L.trim, 2, 1); P(6, 13, L.trim); P(9, 13, L.trim);
+    P(7, 11, skD, 2, 1);
+    P(6, 4, sk, 4, 1); P(5, 5, sk, 6, 4); P(6, 9, sk, 4, 1); P(7, 10, sk, 2, 1);
+    P(5, 5, skL, 1, 3); P(10, 6, skD, 1, 3);
+    P(6, 6, '#1a120d'); P(9, 6, '#1a120d');
+    P(8, 7, skD); P(7, 9, '#8a4a3a', 2, 1);
+    const st = L.style;
+    if (st === 'veil') {
+      P(4, 3, L.veil, 8, 2); P(4, 5, L.veil, 1, 7); P(11, 5, L.veil, 1, 7); P(3, 6, L.veil, 1, 6); P(12, 6, L.veil, 1, 6);
+      P(4, 3, shade(L.veil, 0.18), 8, 1); P(6, 4, hair, 4, 1);
+    } else if (st === 'bald') {
+      P(5, 6, hair, 1, 2); P(10, 6, hair, 1, 2); P(6, 4, skL, 3, 1); P(6, 3, sk, 4, 1);
+    } else {
+      P(5, 3, hair, 6, 2); P(6, 2, hair, 4, 1); P(5, 5, hair); P(10, 5, hair); P(4, 4, hair, 1, 3); P(11, 4, hair, 1, 3);
+      if (st === 'long') { P(4, 7, hair, 1, 5); P(11, 7, hair, 1, 5); P(3, 8, hairD, 1, 3); P(12, 8, hairD, 1, 3); }
+      if (st === 'curly') { P(4, 2, hair); P(11, 2, hair); P(5, 1, hair, 2, 1); P(9, 1, hair, 2, 1); P(5, 3, hairD); P(8, 2, hairD); P(10, 3, hairD); }
+      P(6, 3, shade(hair, 0.22), 2, 1);
+    }
+    if (L.beard) {
+      P(5, 8, hair, 1, 2); P(10, 8, hair, 1, 2); P(6, 9, hair); P(9, 9, hair);
+      if (L.beard > 1) { P(6, 10, hair, 4, 1); P(7, 11, hair, 2, 1); P(6, 9, hair, 4, 1); P(7, 9, '#8a4a3a', 2, 1); }
+    }
+    if (L.hat === 'petasos') { P(2, 3, '#7a5a3a', 12, 1); P(5, 1, '#8a6a44', 6, 2); P(6, 0, '#8a6a44', 4, 1); P(2, 3, '#9a7a54', 3, 1); }
+    if (L.hat === 'pilos') { P(5, 2, '#a07a4a', 6, 2); P(6, 1, '#a07a4a', 4, 1); P(7, 0, '#b88a58', 2, 1); }
+    if (L.hat === 'band') P(5, 4, L.trim, 6, 1);
+  }, '#0e0906');
+}
+
+// Icons for the tabs and buttons, as crisp little pixel pictures.
+const PXI = {
+  amphora: ['...#...#...', '..#.###.#..', '..#..#..#..', '...#####...', '..#######..', '.#########.', '.#########.', '..#######..', '...#####...', '....###....', '.....#.....'],
+  ship: ['.....#.....', '.....##....', '.....###...', '.....####..', '.....#####.', '.....#.....', '#....#....#', '##########.', '.#########.', '..#######..', '...........'],
+  fire: ['.....#.....', '....##.....', '....###....', '...####.#..', '..#######..', '..###.###..', '..##...##..', '...#...#...', '#.........#', '.#########.', '#..#...#..#'],
+  hold: ['###.###.###', '###.###.###', '###.###.###', '...........', '###.#######', '###.#######', '###.#######', '...........', '###.###.###', '###.###.###', '###.###.###'],
+  crew: ['....###....', '....###....', '....###....', '.....#.....', '..#######..', '.#.#####.#.', '.#.#####.#.', '...#####...', '...##.##...', '...##.##...', '...##.##...'],
+  ledger: ['#########..', '#.......#..', '#.#####.#..', '#.......#.#', '#.####..#.#', '#.......##.', '#.#####.##.', '#.......#..', '#########..', '...........', '...........'],
+  soundOn: ['...........', '....#...#..', '...##....#.', '####..#..#.', '####...#.#.', '####...#.#.', '####..#..#.', '...##....#.', '....#...#..', '...........', '...........'],
+  soundOff: ['...........', '....#......', '...##......', '####..#...#', '####...#.#.', '####....#..', '####...#.#.', '...##.#...#', '....#......', '...........', '...........'],
+  menu: ['...........', '...........', '.#########.', '.#########.', '...........', '.#########.', '.#########.', '...........', '.#########.', '.#########.', '...........'],
+};
+function pxIcon(name) {
+  const rows = PXI[name], w = rows[0].length;
+  let r = '';
+  rows.forEach((row, y) => { for (let x = 0; x < w;) { if (row[x] !== '#') { x++; continue; } let e = x; while (row[e] === '#') e++; r += `<rect x="${x}" y="${y}" width="${e - x}" height="1"/>`; x = e; } });
+  return `<svg viewBox="0 0 ${w} ${rows.length}" fill="currentColor" aria-hidden="true">${r}</svg>`;
+}
+function scaledURL(c, k) { const o = canvasOf(c.width * k, c.height * k), g = o.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(c, 0, 0, o.width, o.height); return o.toDataURL(); }
+const COIN = sprite(11, 11, P => {
+  disc(P, 5.5, 5.5, 4.9, '#cfd4d8', '#f4f6f8', '#8f969c');
+  P(4, 3, '#c04848', 3, 3); P(4, 3, '#e07a7a'); P(5, 4, '#8a2a2a'); P(5, 6, '#5a8a3a', 1, 2); P(4, 7, '#6fa03e');
+}, '#3a3a40');
+// A band of square key pattern, like the border round a painted cup.
+const MEANDER = sprite(6, 7, P => {
+  for (const [y, row] of ['######', '......', '###...', '#.#...', '#.####', '......', '######'].entries()) for (let x = 0; x < 6; x++) if (row[x] === '#') P(x, y, '#9e4f28');
+});
+
+// ---------- sound: sea, wind, a lyre, coins, and trouble ----------
+const NOTES = [164.81, 174.61, 196.0, 220.0, 246.94, 261.63, 293.66, 329.63, 392.0];
+const Snd = {
+  ctx: null, out: null, muted: false, cache: new Map(), nextNote: 0,
+  init() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try { this.ctx = new AC(); } catch (e) { this.ctx = null; return; }
+    const ctx = this.ctx, sr = ctx.sampleRate;
+    this.out = ctx.createGain(); this.out.gain.value = this.muted ? 0 : 0.85; this.out.connect(ctx.destination);
+    const nb = ctx.createBuffer(1, sr * 4, sr), d = nb.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < d.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+    this.brown = nb;
+    const wb = ctx.createBuffer(1, Math.floor(sr * 0.4), sr), wd = wb.getChannelData(0);
+    for (let i = 0; i < wd.length; i++) wd[i] = Math.random() * 2 - 1;
+    this.white = wb;
+    const bed = (freq, gain, lfoF, lfoD) => {
+      const src = ctx.createBufferSource(); src.buffer = this.brown; src.loop = true;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
+      const g = ctx.createGain(); g.gain.value = gain;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = lfoF;
+      const lg = ctx.createGain(); lg.gain.value = lfoD;
+      lfo.connect(lg); lg.connect(g.gain); src.connect(f); f.connect(g); g.connect(this.out);
+      src.start(0, Math.random() * 3); lfo.start();
+      return { f, g };
+    };
+    this.waves = bed(700, 0.07, 0.11, 0.05);
+    this.wind = bed(380, 0.05, 0.05, 0.03);
+    this.nextNote = ctx.currentTime + 1.5;
+  },
+  mood(kind) {   // 'port', 'sea', 'storm', 'night'
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime, k = { port: [0.05, 700, 0.03, 380], sea: [0.09, 900, 0.06, 420], storm: [0.13, 1300, 0.19, 900], night: [0.05, 500, 0.02, 300] }[kind] || [0.07, 700, 0.05, 380];
+    this.waves.g.gain.setTargetAtTime(k[0], t, 1.5); this.waves.f.frequency.setTargetAtTime(k[1], t, 1.5);
+    this.wind.g.gain.setTargetAtTime(k[2], t, 1.5); this.wind.f.frequency.setTargetAtTime(k[3], t, 1.5);
+  },
+  setMuted(m) { this.muted = m; if (this.ctx) this.out.gain.setTargetAtTime(m ? 0 : 0.85, this.ctx.currentTime, 0.05); },
+  pluckBuf(freq) {
+    const key = Math.round(freq);
+    if (this.cache.has(key)) return this.cache.get(key);
+    const ctx = this.ctx, sr = ctx.sampleRate, len = Math.floor(sr * 1.6), N = Math.max(2, Math.round(sr / freq));
+    const buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    for (let i = 0; i < N; i++) d[i] = Math.random() * 2 - 1;
+    for (let i = 1; i < N; i++) d[i] = (d[i] + d[i - 1]) * 0.5;
+    for (let i = N; i < len; i++) d[i] = 0.498 * (d[i - N] + (i - N - 1 >= 0 ? d[i - N - 1] : 0));
+    const fade = Math.floor(sr * 0.15);
+    for (let i = 0; i < len; i++) { d[i] *= 0.55; if (i > len - fade) d[i] *= (len - i) / fade; }
+    this.cache.set(key, buf);
+    return buf;
+  },
+  pluck(freq, vol, when) {
+    if (!this.ctx || this.muted) return;
+    const src = this.ctx.createBufferSource(); src.buffer = this.pluckBuf(freq);
+    const g = this.ctx.createGain(); g.gain.value = vol;
+    src.connect(g); g.connect(this.out); src.start(this.ctx.currentTime + (when || 0));
+  },
+  ping(freq, vol, when, dur) {
+    if (!this.ctx || this.muted) return;
+    const ctx = this.ctx, t = ctx.currentTime + (when || 0);
+    for (const [m, v] of [[1, 1], [2.76, 0.4], [5.4, 0.18]]) {
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = freq * m;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol * v, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.25));
+      o.connect(g); g.connect(this.out); o.start(t); o.stop(t + (dur || 0.25) + 0.05);
+    }
+  },
+  noise(freq, q, vol, dur, type, when) {
+    if (!this.ctx || this.muted) return;
+    const ctx = this.ctx, t = ctx.currentTime + (when || 0);
+    const n = ctx.createBufferSource(); n.buffer = this.white;
+    const f = ctx.createBiquadFilter(); f.type = type || 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+    const g = ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    n.connect(f); f.connect(g); g.connect(this.out); n.start(t); n.stop(t + dur + 0.02);
+  },
+  thump(f0, f1, vol, dur, when) {
+    if (!this.ctx || this.muted) return;
+    const ctx = this.ctx, t = ctx.currentTime + (when || 0);
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.8);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.out); o.start(t); o.stop(t + dur + 0.02);
+  },
+  coin() { this.ping(2093, 0.12, 0, 0.3); this.ping(2637, 0.09, 0.06, 0.35); },
+  coins() { this.ping(1976, 0.1, 0, 0.3); this.ping(2349, 0.09, 0.07, 0.3); this.ping(2637, 0.08, 0.15, 0.4); },
+  place() { this.thump(140, 70, 0.32, 0.12); this.noise(900, 1, 0.08, 0.05); },
+  turn() { this.noise(2400, 2, 0.12, 0.04); },
+  nope() { this.thump(110, 90, 0.2, 0.14); },
+  yes() { this.pluck(NOTES[3], 0.2); this.pluck(NOTES[5], 0.18, 0.12); this.pluck(NOTES[7], 0.16, 0.24); },
+  no() { this.pluck(NOTES[4], 0.2); this.pluck(NOTES[1], 0.18, 0.16); },
+  event() { this.pluck(NOTES[2], 0.18); this.pluck(NOTES[6], 0.14, 0.2); },
+  arrive() { [0, 2, 4, 7].forEach((n, i) => this.pluck(NOTES[n], 0.16, i * 0.22)); },
+  bolt() { this.thump(90, 40, 0.5, 0.3); this.noise(3000, 1.5, 0.25, 0.08, 'highpass'); },
+  clash() { for (let i = 0; i < 4; i++) this.noise(3200 + Math.random() * 1500, 4, 0.16, 0.09, 'bandpass', i * 0.16 + Math.random() * 0.05); },
+  splash() { this.noise(500, 0.7, 0.3, 0.5, 'lowpass'); },
+  horn() {
+    if (!this.ctx || this.muted) return;
+    const ctx = this.ctx, t = ctx.currentTime, env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(0.16, t + 0.12); env.gain.setValueAtTime(0.16, t + 0.7); env.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400; lp.connect(env); env.connect(this.out);
+    for (const [f, v] of [[220, 1], [221.2, 0.6], [330, 0.35]]) {
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f * 0.94, t); o.frequency.linearRampToValueAtTime(f, t + 0.1);
+      const g = ctx.createGain(); g.gain.value = v * 0.25; o.connect(g); g.connect(lp); o.start(t); o.stop(t + 1.5);
+    }
+  },
+  music(kind) {
+    if (!this.ctx || this.muted) return;
+    const now = this.ctx.currentTime;
+    if (now < this.nextNote) return;
+    this.nextNote = now + (kind === 'port' ? 5 : 8) + Math.random() * 6;
+    const k = 2 + Math.floor(Math.random() * 3), start = Math.floor(Math.random() * 4);
+    for (let i = 0; i < k; i++) this.pluck(NOTES[Math.min(8, start + Math.floor(Math.random() * 4))], 0.07, i * (0.35 + Math.random() * 0.3));
+  },
+};
+
+// ---------- the painted world: pixel art drawn in code, at a few pixels to the art pixel ----------
+let G = null;   // the canvas being painted
+function R(x, y, w, h, c) { G.fillStyle = c; G.fillRect(Math.floor(x), Math.floor(y), Math.round(w), Math.round(h)); }
+function px(x, y, c) { G.fillStyle = c; G.fillRect(Math.floor(x), Math.floor(y), 1, 1); }
+function pline(x0, y0, x1, y1, c) {
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  G.fillStyle = c;
+  for (let guard = 0; guard < 400; guard++) {
+    G.fillRect(x0, y0, 1, 1);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
+const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+function vnoise(x, seed) { const i = Math.floor(x), f = x - i, a = hash(i + seed * 57.3), b = hash(i + 1 + seed * 57.3), u = f * f * (3 - 2 * f); return a + (b - a) * u; }
+const fbm = (x, seed) => vnoise(x, seed) * 0.6 + vnoise(x * 2.3, seed + 3) * 0.28 + vnoise(x * 5.1, seed + 7) * 0.12;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+
+const DAYPAL = [
+  [0.00, { skyTop: '#2e2c5e', skyBot: '#f0a878', sun: '#ffd49a', seaTop: '#7a6a96', seaBot: '#24275a', wave: '#f3c3a0', far: '#6a5a7a', near: '#3e3352', cloud: '#f4c0a0' }],
+  [0.16, { skyTop: '#3f78c0', skyBot: '#cfe6f0', sun: '#fff4cf', seaTop: '#58a4cc', seaBot: '#1d4f82', wave: '#e8f6fb', far: '#9ab4c4', near: '#5f8290', cloud: '#ffffff' }],
+  [0.50, { skyTop: '#2f7fd0', skyBot: '#a8dcf2', sun: '#fffbe8', seaTop: '#40a6d0', seaBot: '#124a7e', wave: '#ffffff', far: '#a3c3cf', near: '#5e8a8e', cloud: '#ffffff' }],
+  [0.84, { skyTop: '#3d6fb4', skyBot: '#f2cf96', sun: '#ffe2a2', seaTop: '#5290b8', seaBot: '#1a4272', wave: '#fff0d0', far: '#a6a0b0', near: '#65697c', cloud: '#fbe3c0' }],
+  [1.00, { skyTop: '#2a2152', skyBot: '#e3735a', sun: '#ff9e66', seaTop: '#6a3f70', seaBot: '#251641', wave: '#f0a088', far: '#5c3c5e', near: '#36233f', cloud: '#e89a8a' }],
+];
+const STORM = { skyTop: '#353c46', skyBot: '#7a8590', sun: '#cfd4d8', seaTop: '#56666f', seaBot: '#1e2a32', wave: '#dfe6ea', far: '#5a6268', near: '#3a4248', cloud: '#8a9298' };
+const NIGHT = { skyTop: '#0a0f2c', skyBot: '#27315e', sun: '#ece8d2', seaTop: '#2a3460', seaBot: '#0c1230', wave: '#8a94c0', far: '#1e2448', near: '#12172f', cloud: '#3a4270' };
+const palCache = new Map();
+function dayPal(clock, storm) {
+  const c = clamp(clock, 0, 1), st = Math.round((storm || 0) * 10) / 10, key = Math.round(c * 60) + ':' + st;
+  let p = palCache.get(key);
+  if (p) return p;
+  let i = 0;
+  while (i < DAYPAL.length - 2 && c > DAYPAL[i + 1][0]) i++;
+  const [a, A] = DAYPAL[i], [b, B] = DAYPAL[i + 1], t = (Math.round(c * 60) / 60 - a) / (b - a);
+  p = {};
+  for (const k in A) p[k] = mix(A[k], B[k], clamp(t, 0, 1));
+  if (st) for (const k in p) p[k] = mix(p[k], STORM[k], st);
+  palCache.set(key, p);
+  return p;
+}
+// Static parts of a picture are painted once into a layer, and reused until the size or the light changes.
+const LAYERS = new Map();
+function layer(key, w, h, paint) {
+  let c = LAYERS.get(key);
+  if (!c) {
+    c = canvasOf(Math.max(1, w), Math.max(1, h));
+    const prev = G; G = c.getContext('2d'); paint(); G = prev;
+    LAYERS.set(key, c);
+    if (LAYERS.size > 48) LAYERS.delete(LAYERS.keys().next().value);
+  }
+  return c;
+}
+function bands(W, y0, h, top, bot, n) {   // a dithered gradient, the way old screens did it
+  n = n || 7;
+  for (let y = 0; y < h; y++) {
+    const t = y / Math.max(1, h - 1) * (n - 1), b = Math.floor(t), f = t - b;
+    const c0 = mix(top, bot, b / (n - 1)), c1 = mix(top, bot, Math.min(n - 1, b + 1) / (n - 1));
+    R(0, y0 + y, W, 1, f > 0.66 ? c1 : c0);
+    if (f >= 0.34 && f <= 0.66) { G.fillStyle = c1; for (let x = (y & 1); x < W; x += 2) G.fillRect(x, y0 + y, 1, 1); }
+  }
+}
+function sunDisc(x, y, r, c) {
+  for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (xx * xx + yy * yy <= r * r + 1) px(x + xx, y + yy, c);
+}
+function clouds(W, hz, t, col, seed, n) {
+  for (let k = 0; k < (n || 3); k++) {
+    const w = 10 + Math.floor(hash(seed + k) * 12), y = 4 + Math.floor(hash(seed + k + 9) * Math.max(2, hz * 0.45));
+    const x = ((hash(seed + k + 3) * (W + 40) + t * (0.6 + k * 0.25)) % (W + 40)) - 20;
+    R(x, y, w, 2, col); R(x + 3, y - 2, w - 7, 2, col); R(x + 1, y + 2, w - 2, 1, shade(col, -0.08));
+  }
+}
+function ridge(off, W, base, amp, scale, seed, col) {
+  G.fillStyle = col;
+  for (let x = 0; x < W; x++) { const top = Math.round(base - amp * fbm((x + off) / scale, seed)); G.fillRect(x, top, 1, base - top + 1); }
+}
+function islands(off, W, base, col, seed) {
+  G.fillStyle = col;
+  for (let x = 0; x < W; x++) {
+    const n = fbm((x + off) / 26, seed);
+    if (n < 0.5) continue;
+    const h = Math.round((n - 0.5) * 34);
+    if (h > 0) G.fillRect(x, base - h, 1, h + 1);
+  }
+}
+function waves(W, y0, y1, t, col, rough) {
+  for (let y = y0 + 2; y < y1; y += 3) {
+    const depth = (y - y0) / Math.max(1, y1 - y0), sp = (0.8 + depth * 3) * (rough ? 2 : 1);
+    const len = 1 + Math.round(depth * (rough ? 4 : 2));
+    for (let k = 0; k < W; k += 7) {
+      const h = hash(k * 0.37 + y * 7.1);
+      if (h > (rough ? 0.5 : 0.3)) continue;
+      const x = ((k + h * 40 - t * sp) % (W + 8) + W + 8) % (W + 8) - 4;
+      R(x, y, len, 1, col);
+    }
+  }
+}
+
+// ---- people, ships and things ----
+function figure(cx, gy, L, t, seed) {   // a standing person, about 11 pixels tall; gy is the ground
+  const sk = L.skin, robe = L.robe, bob = Math.round(Math.sin(t * 1.3 + seed) * 0.4);
+  R(cx - 2, gy - 7, 4, 5, robe); R(cx - 2, gy - 7, 1, 5, shade(robe, 0.16)); R(cx + 1, gy - 6, 1, 4, shade(robe, -0.18));
+  px(cx - 1, gy - 7, L.trim); px(cx, gy - 7, L.trim);
+  R(cx - 1, gy - 10 + bob, 3, 3, sk); px(cx - 1, gy - 9 + bob, '#1a120d'); px(cx + 1, gy - 9 + bob, '#1a120d');
+  if (L.style === 'veil') { R(cx - 2, gy - 11 + bob, 5, 1, L.veil); R(cx - 2, gy - 10 + bob, 1, 4, L.veil); R(cx + 2, gy - 10 + bob, 1, 4, L.veil); }
+  else if (L.style !== 'bald') { R(cx - 1, gy - 11 + bob, 3, 1, L.hair); if (L.style === 'long') { px(cx - 2, gy - 10 + bob, L.hair); px(cx + 2, gy - 10 + bob, L.hair); } }
+  if (L.beard) R(cx - 1, gy - 8 + bob, 3, 1, L.hair);
+  if (L.hat === 'petasos') { R(cx - 3, gy - 11 + bob, 7, 1, '#7a5a3a'); R(cx - 1, gy - 12 + bob, 3, 1, '#8a6a44'); }
+  if (L.hat === 'pilos') R(cx - 1, gy - 12 + bob, 3, 2, '#a07a4a');
+  R(cx - 1, gy - 2, 1, 2, shade(sk, -0.22)); R(cx + 1, gy - 2, 1, 2, shade(sk, -0.22));
+}
+function walker(x, gy, robe, t, k) {
+  const step = Math.floor(t * 4 + k) % 2;
+  R(x - 1, gy - 6, 3, 4, robe); R(x - 1, gy - 8, 2, 2, '#c48a58'); px(x - 1, gy - 9, '#2a1d14');
+  px(x - 1 + step, gy - 2, '#8a5a3a'); px(x + 1 - step, gy - 1, '#8a5a3a'); px(x - 1 + step, gy - 1, '#8a5a3a');
+}
+function sitter(x, gy, robe, face) { R(x - 1, gy - 3, 3, 3, robe); R(x - 1, gy - 5, 2, 2, face || '#a87040'); }
+function gull(x, y, t, k) {
+  const up = Math.floor(t * 3 + k) % 2;
+  px(x, y, '#f4f4f0'); px(x - 1, y - up, '#f4f4f0'); px(x + 1, y - up, '#f4f4f0'); px(x - 2, y - up, '#cfd4d8'); px(x + 2, y - up, '#cfd4d8');
+}
+function mini(g, x, y) {
+  switch (g) {
+    case 'wine': R(x, y - 3, 2, 3, '#c8693f'); px(x, y - 4, '#8e4426'); break;
+    case 'sponge': R(x, y - 2, 2, 2, '#d9a441'); break;
+    case 'figs': R(x, y - 1, 3, 1, '#7a5028'); px(x + 1, y - 2, '#6e3a52'); break;
+    case 'cups': R(x, y - 1, 2, 1, '#1c1612'); px(x + 2, y - 1, '#1c1612'); break;
+    case 'barley': R(x, y - 2, 2, 2, '#c9a46a'); break;
+    case 'water': R(x, y - 2, 2, 2, '#d6a874'); px(x, y - 3, '#3f8fb8'); break;
+    case 'honey': R(x, y - 2, 2, 2, '#a0602e'); px(x, y - 3, '#efe3cc'); break;
+    case 'cloth': R(x, y - 1, 3, 1, '#efe6d6'); px(x + 1, y - 1, '#8e4a8c'); break;
+    case 'scent': px(x, y - 2, '#d98a8a'); px(x + 1, y - 2, '#9a7ac0'); R(x, y - 1, 2, 1, '#efe3cc'); break;
+    case 'marble': R(x, y - 2, 3, 2, '#ece6d8'); break;
+    case 'hermes': R(x, y - 3, 1, 3, '#b0773a'); break;
+    case 'bolt': R(x, y - 1, 3, 1, '#3a2a1e'); px(x + 1, y - 2, '#8a5a34'); break;
+  }
+}
+function stall(cx, gy, mid, t, lit) {   // a merchant behind a counter under a striped awning
+  const m = MERCHANTS[mid], L = m.look, x0 = cx - 6;
+  figure(cx, gy - 2, L, t, cx);
+  R(x0, gy - 14, 1, 14, '#5a3a22'); R(x0 + 11, gy - 14, 1, 14, '#5a3a22');
+  for (let i = 0; i < 14; i++) R(x0 - 1 + i, gy - 16, 1, 2, (i >> 1) % 2 ? L.robe : '#efe3cc');
+  for (let i = 0; i < 14; i += 2) px(x0 - 1 + i, gy - 14, (i >> 1) % 2 ? L.robe : '#efe3cc');
+  R(x0 + 1, gy - 5, 10, 5, '#8a5a34'); R(x0 + 1, gy - 5, 10, 1, '#b07a48'); R(x0 + 1, gy - 1, 10, 1, '#5a3a22');
+  if (m.bank) { R(x0 + 3, gy - 6, 6, 1, '#cfd4d8'); px(x0 + 4, gy - 7, '#f4f6f8'); px(x0 + 7, gy - 7, '#f4f6f8'); }
+  else { let xx = x0 + 2; for (const g of Object.keys(m.sells).concat(Object.keys(m.buys)).slice(0, 3)) { mini(g, xx, gy - 6); xx += 3; } }
+  if (lit) { const b = Math.floor(t * 2) % 2; R(cx - 1, gy - 22 - b, 3, 3, '#eac05a'); px(cx, gy - 19 - b, '#eac05a'); px(cx, gy - 21 - b, '#16100c'); }
+}
+function drawElpis(x, y, o) {   // our ship from the side, bow to the right; y is the waterline
+  const L = 30, hull = '#6a4022', hullL = '#8e5c34', wale = '#2a1a10', mx = x + 13;
+  R(mx, y - 25, 1, 21, '#4a2e1a');
+  if (o.sail === 'furled') {
+    R(mx - 8, y - 23, 17, 1, '#4a2e1a'); R(mx - 7, y - 22, 15, 2, '#d8c8a8'); R(mx - 7, y - 21, 15, 1, '#b8a888');
+  } else {
+    const top = y - 23, bot = o.sail === 'reef' ? y - 16 : y - 9, slack = o.sail === 'slack';
+    R(mx - 9, top, 19, 1, '#4a2e1a');
+    for (let yy = top + 1; yy <= bot; yy++) {
+      const k = (yy - top) / (bot - top), belly = slack ? 0 : Math.round(Math.sin(k * Math.PI) * 1.6), pull = slack ? Math.round(k * 2) : 0;
+      const w0 = mx - 8 + pull, w1 = mx + 8 + belly - pull;
+      R(w0, yy, w1 - w0 + 1, 1, '#efe3cc'); R(w1 - 1, yy, 2, 1, '#d6c6a4');
+      for (let sx = w0 + 3; sx < w1 - 1; sx += 4) px(sx, yy, '#dccfb0');
+    }
+    if (bot - top > 8) {
+      const ry = top + Math.round((bot - top) * 0.45);
+      R(mx - 1, ry - 1, 3, 3, '#c0403c'); px(mx - 2, ry, '#c0403c'); px(mx + 2, ry, '#c0403c'); px(mx, ry - 2, '#c0403c');
+      px(mx, ry, '#7a1e22'); px(mx, ry + 2, '#5a8a3a'); px(mx + 1, ry + 3, '#5a8a3a');
+    }
+    pline(mx - 9, top, x + 2, y - 6, '#3a2416'); pline(mx + 9, top, x + L - 3, y - 6, '#3a2416');
+  }
+  for (let i = 0; i <= L; i++) {
+    const rise = i < 5 ? Math.round((5 - i) * 0.7) : i > L - 5 ? Math.round((i - (L - 5)) * 0.8) : 0;
+    const top = y - 4 - rise, bot = y + 2 - (i < 2 || i > L - 2 ? 1 : 0);
+    R(x + i, top, 1, bot - top + 1, hull);
+    px(x + i, top, hullL); px(x + i, top + 1, wale); px(x + i, top + 3, hullL);
+  }
+  R(x - 1, y - 9, 1, 4, hull); px(x, y - 10, hull); px(x + 1, y - 11, hullL); px(x - 1, y - 9, hullL);
+  R(x + L + 1, y - 8, 1, 3, hull); px(x + L, y - 9, hullL);
+  R(x + L - 5, y - 3, 2, 1, '#efe3cc'); px(x + L - 4, y - 3, '#1a120d');
+  pline(x + 3, y - 6, x + 1, y + 3, '#4a2e1a'); R(x, y + 2, 2, 2, '#4a2e1a');
+  const n = o.crew == null ? 6 : o.crew, ph = o.row ? Math.sin(o.t * 5) : 0;
+  for (let k = 0; k < n; k++) {
+    const hx = x + 4 + Math.round(k * (L - 9) / Math.max(1, n - 1)), lean = o.row && k > 0 && k < n - 1 ? Math.round(ph) : 0;
+    R(hx + lean, y - 7, 2, 2, k === 0 ? '#b07a4c' : '#c48a58'); px(hx + lean, y - 8, k === 0 ? '#d8d2c4' : '#2a1d14');
+  }
+  if (o.row) for (let k = 0; k < 4; k++) { const ox = x + 8 + k * 5; pline(ox, y - 4, ox - 3 + Math.round(ph * 2), y + 4, '#5a3a20'); }
+  if (o.wake) for (let k = 0; k < 7; k++) px(x - 3 - k * 2 - (Math.floor(o.t * 6) % 2), y + 1 + (k % 2), k < 3 ? '#ffffff' : '#d8eef6');
+  if (o.lamp) { const b = Math.floor(o.t * 3) % 2; px(x + 2, y - 12, '#ffd27a'); px(x + 2, y - 13 + b, '#ffb04a'); }
+}
+function drawHemiolia(x, y, t, fight) {   // the pirate ship: long, low, a ram at the bow, half her oars shipped
+  const L = 42, hull = '#2a1e1a', stripe = '#8a3a2a';
+  R(x + 24, y - 15, 1, 12, '#3a2a1e'); R(x + 19, y - 14, 11, 1, '#3a2a1e'); R(x + 20, y - 13, 9, 1, '#9a8a72');
+  for (let i = 0; i <= L; i++) {
+    const rise = i < 3 ? 3 - i : i > L - 4 ? (i - (L - 4)) * 1.2 : 0, top = y - 3 - Math.round(rise);
+    R(x + i, top, 1, y + 2 - top, hull); px(x + i, top + 1, stripe);
+  }
+  R(x - 4, y, 5, 2, '#9a7a3a'); px(x - 5, y + 1, '#9a7a3a');
+  R(x + 2, y - 2, 2, 1, '#efe3cc'); px(x + 2, y - 2, '#c8423a');
+  R(x + L, y - 8, 1, 4, hull); px(x + L - 1, y - 9, hull);
+  const ph = Math.sin(t * 7);
+  for (let k = 0; k < 6; k++) { const ox = x + 5 + k * 3; pline(ox, y - 1, ox + 2 + Math.round(ph * 2), y + 4, '#5a4030'); }
+  for (let k = 0; k < 7; k++) {
+    const fx = Math.round(x + 23 + k * 2.6), j = fight ? Math.round(Math.sin(t * 9 + k) * 0.6) : 0;
+    R(fx, y - 6 + j, 1, 3, '#1a1210'); px(fx, y - 7 + j, '#c48a58'); if (fight || k % 2) px(fx + 1, y - 8 + j + (k % 2), '#d8dde2');
+  }
+}
+function dolphin(x, y, ph) {
+  const yy = y - Math.round(Math.sin(ph * Math.PI) * 5);
+  R(x, yy, 4, 1, '#4f6272'); R(x + 1, yy - 1, 2, 1, '#6a7e8e'); px(x + 2, yy - 2, '#4f6272'); px(x - 1, yy + 1, '#4f6272'); px(x + 4, yy - 1, '#4f6272');
+}
+function harbourBoats(W, y0, y1, t) {   // fishing boats rowing slowly about the harbour
+  if (y1 - y0 < 6) return;
+  for (let k = 0; k < 3; k++) {
+    const y = Math.round(y0 + (y1 - y0) * (0.2 + 0.35 * k)), dir = k % 2 ? -1 : 1, sp = 1.2 + k * 0.5;
+    const x = dir > 0 ? ((t * sp + k * 53) % (W + 20)) - 10 : W + 10 - ((t * sp + k * 53) % (W + 20));
+    const ph = Math.floor(t * 3 + k) % 2;
+    R(x, y, 7, 2, '#5a3a22'); R(x, y, 7, 1, '#8a5a34'); R(x + 3, y - 2, 2, 2, k === 1 ? '#c8623a' : '#3f6f8e'); px(x + 3, y - 3, '#c48a58');
+    pline(x + 2, y, x + 1 - ph * dir, y + 2, '#3a2416'); pline(x + 5, y, x + 6 - ph * dir, y + 2, '#3a2416');
+  }
+}
+function house(x, y, w, h, wall, roof) {
+  R(x, y - h, w, h, wall); R(x + w - 1, y - h, 1, h, shade(wall, -0.12));
+  R(x - 1, y - h - 1, w + 2, 1, roof); R(x, y - h - 2, w, 1, shade(roof, 0.14));
+  px(x + 1, y - h + 1, '#4a3428'); if (w > 4) px(x + w - 2, y - h + 1, '#4a3428');
+}
+function tower(x, y, w, h, col) {
+  R(x, y - h, w, h, col); R(x + w - 1, y - h, 1, h, shade(col, -0.14));
+  for (let k = 0; k < w; k += 2) px(x + k, y - h - 1, col);
+  px(x + (w >> 1), y - h + 2, '#3a2a22');
+}
+function temple(cx, gy, w, col) {
+  R(cx - (w >> 1) - 1, gy - 1, w + 2, 1, shade(col, -0.16)); R(cx - (w >> 1), gy - 2, w, 1, col);
+  for (let x = cx - (w >> 1); x < cx + (w >> 1); x += 2) R(x, gy - 6, 1, 4, col);
+  R(cx - (w >> 1), gy - 7, w, 1, col);
+  for (let k = 0; k < 3; k++) R(cx - (w >> 1) + 1 + k * 2, gy - 8 - k, w - 2 - k * 4, 1, k ? shade(col, -0.05) : '#b85a32');
+}
+function quayFloor(W, H, qy) {
+  R(0, qy, W, H - qy, '#b3a283'); R(0, qy, W, 1, '#d6c7a4'); R(0, qy - 1, W, 1, '#4a3a2e');
+  for (let y = qy + 4, r = 0; y < H; y += 4, r++) {
+    R(0, y, W, 1, '#9e8e70');
+    for (let x = (r % 2) * 4; x < W; x += 8) R(x, y - 3, 1, 3, '#9e8e70');
+  }
+}
+const WALLS = ['#efe3cc', '#e6d4aa', '#d9bd90', '#f4ece0', '#e0c9a0'];
+const ROOFS = ['#b85a32', '#a24a2a', '#c4683a', '#9a4426'];
+function town(W, ground, rows, xFrom, xTo, seed, rowY) {
+  for (let r = 0; r < rows; r++) {
+    for (let x = xFrom + Math.floor(hash(seed + r) * 4); x < xTo; x += 5 + Math.floor(hash(seed + r * 9 + x) * 3)) {
+      const y = rowY(r, x), w = 3 + Math.floor(hash(seed + x * 3 + r) * 3), h = 2 + Math.floor(hash(seed + x + r * 5) * 2);
+      if (y - h - 2 < ground(x) + 1 || y - h - 2 < ground(x + w) + 1) continue;
+      house(x, y, w, h, WALLS[Math.floor(hash(seed + x * 7 + r) * WALLS.length)], ROOFS[Math.floor(hash(seed + x * 11 + r * 3) * ROOFS.length)]);
+    }
+  }
+}
+// The statue of the Sun, going up inside its scaffolding. Stage 1 is his feet, stage 2 his shins.
+function colossus(cx, gy, stage, t) {
+  R(cx - 9, gy, 20, 3, '#bfae8a'); R(cx - 9, gy, 20, 1, '#d8c9a8');
+  const ramp = stage > 1 ? 15 : 10;
+  for (let k = 0; k < ramp; k++) R(cx + 5 + Math.floor(k * 0.6), gy - ramp + k, ramp - k, 1, k % 3 ? '#a8875a' : '#8f6f48');
+  R(cx - 5, gy - 7, 10, 7, '#ece6d8'); R(cx + 3, gy - 7, 2, 7, '#cfc6b4'); R(cx - 6, gy - 8, 12, 1, '#fffaf0'); R(cx - 6, gy - 1, 12, 1, '#cfc6b4');
+  const top = stage > 1 ? 9 : 4;
+  for (const lx of [cx - 4, cx + 1]) { R(lx, gy - 8 - top, 3, top, '#b0773a'); R(lx, gy - 8 - top, 1, top, '#e0a860'); R(lx + 2, gy - 8 - top, 1, top, '#7a4a22'); }
+  R(cx - 5, gy - 10, 4, 2, '#b0773a'); R(cx, gy - 10, 4, 2, '#b0773a');
+  const sh = gy - 8 - top - 8;
+  for (const x of [cx - 8, cx - 1, cx + 6]) R(x, sh, 1, gy - sh, '#7a5532');
+  for (let y = sh + 2; y < gy - 8; y += 4) R(cx - 8, y, 15, 1, '#8a6440');
+  const ct = sh - 8, swing = Math.round(Math.sin(t * 0.9) * 1);
+  R(cx + 11, ct, 1, gy - ct, '#6a4a2e'); pline(cx + 11, ct, cx + 1, ct + 3, '#6a4a2e');
+  R(cx + 1 + swing, ct + 4, 1, 6, '#3a2a1e'); R(cx + swing, ct + 10, 3, 2, '#ece6d8');
+  const w = Math.floor(t * 1.5) % 6;
+  px(cx - 7 + w, sh + 1, '#c48a58'); px(cx - 7 + w, sh + 2, '#8a5a3a'); px(cx + 7, gy - 3 - (Math.floor(t) % 3), '#c48a58');
+}
+function mausoleum(cx, gy) {
+  R(cx - 8, gy - 6, 16, 6, '#ece6d8'); R(cx + 6, gy - 6, 2, 6, '#cfc6b4'); R(cx - 9, gy - 7, 18, 1, '#fffaf0');
+  R(cx - 7, gy - 11, 14, 4, '#d6cebe');
+  for (let x = cx - 7; x < cx + 7; x += 2) R(x, gy - 11, 1, 4, '#f6f1e6');
+  R(cx - 8, gy - 12, 16, 1, '#ece6d8');
+  for (let k = 0; k < 5; k++) R(cx - 7 + k, gy - 13 - k, 14 - k * 2, 1, k % 2 ? '#cfc6b4' : '#e2dac9');
+  R(cx - 2, gy - 19, 4, 2, '#b0773a'); px(cx - 2, gy - 20, '#b0773a'); px(cx + 1, gy - 20, '#7a4a22');
+}
+
+function drawRhodes(W, H, t, o) {
+  const tall = H > W * 0.9, pal = dayPal(o.clock), hz = Math.max(6, Math.round(H * (tall ? 0.5 : 0.42))), qy = H - 15, stage = o.stage || 1;
+  const hh = Math.max(19, Math.round(H * (tall ? 0.24 : 0.19))), hill = x => { const k = x / (W * 0.62); return Math.round(hz + 3 - hh * (1 - smooth(0.28, 1, k))); };
+  G.drawImage(layer('rh' + W + 'x' + H + ':' + Math.round(o.clock * 60), W, H, () => {
+    bands(W, 0, hz + 6, pal.skyTop, pal.skyBot, 8);
+    sunDisc(Math.round(W * 0.84), Math.round(hz * 0.32), 4, pal.sun);
+    ridge(0, W, hz, Math.max(3, hz * 0.22), 26, 3, pal.far);
+    bands(W, hz, qy - hz, pal.seaTop, pal.seaBot, 5);
+    G.fillStyle = mix('#a89b72', pal.far, 0.18);
+    for (let x = 0; x < W * 0.64; x++) { const y = hill(x); G.fillRect(x, y, 1, hz + 6 - y); }
+    for (let k = 0; k < 40; k++) { const x = Math.floor(hash(k * 3.1) * W * 0.6), y = hill(x) + 1 + Math.floor(hash(k * 7.7) * 5); if (y < hz + 4) px(x, y, '#6f7a42'); }
+    temple(Math.round(W * 0.13), hill(W * 0.13) + 1, 12, '#ece6d8');
+    town(W, hill, Math.ceil(hh / 3.2) + 1, 2, Math.round(W * 0.6), 11, r => hz + 5 - Math.round(r * 3.2));
+    R(0, hz + 5, Math.round(W * 0.62), 2, '#cdbb98'); for (let x = 0; x < W * 0.62; x += 3) px(x, hz + 4, '#cdbb98');
+    for (const f of [0.06, 0.29, 0.53]) tower(Math.round(W * f), hz + 7, 4, 7, '#d6c4a0');
+    R(Math.round(W * 0.66), hz + 10, W, 2, '#bfae8a'); R(Math.round(W * 0.66), hz + 10, W, 1, '#d8c9a8');
+    tower(Math.round(W * 0.66), hz + 12, 5, 9, '#d6c4a0');
+  }), 0, 0);
+  for (let k = 0; k < 18; k++) {
+    const y = hz + 7 + Math.floor(hash(k + 50) * Math.max(1, qy - hz - 8)), x = ((hash(k) * W + t * (1 + (k % 3))) % (W + 6)) - 3;
+    R(x, y, 2 + (k % 3), 1, mix(pal.seaTop, pal.wave, 0.55));
+  }
+  colossus(Math.round(W * 0.46), hz + 9, stage, t);
+  harbourBoats(W, hz + 16, qy - 4, t);
+  const mb = Math.round(Math.sin(t * 1.1) * 0.5);
+  R(Math.round(W * 0.76), hz + 13 + mb, 18, 3, '#5a3a22'); R(Math.round(W * 0.76), hz + 13 + mb, 18, 1, '#8a5a34'); R(Math.round(W * 0.76) + 8, hz + 3 + mb, 1, 10, '#4a2e1a');
+  drawElpis(Math.round(W * 0.58), qy - 3 + Math.round(Math.sin(t * 1.3) * 0.5), { sail: 'furled', crew: 2, t });
+  for (let k = 0; k < 2; k++) gull(((t * (7 + k * 3) + k * 70) % (W + 20)) - 10, 6 + k * 7 + Math.round(Math.sin(t * 2 + k) * 2), t, k);
+  quayFloor(W, H, qy);
+  stalls(W, H, 'rhodes', t, o);
+}
+function drawHalic(W, H, t, o) {
+  const tall = H > W * 0.9, pal = dayPal(o.clock), hz = Math.max(6, Math.round(H * (tall ? 0.5 : 0.44))), qy = H - 15, cx = Math.round(W * 0.46);
+  const gh = Math.max(20, Math.round(H * (tall ? 0.26 : 0.2))), ground = x => { const d = (x - cx) / (W * 0.5); return Math.round(hz + 4 - gh * (0.32 + 0.68 * d * d)); };
+  G.drawImage(layer('ha' + W + 'x' + H + ':' + Math.round(o.clock * 60), W, H, () => {
+    bands(W, 0, hz + 6, pal.skyTop, pal.skyBot, 8);
+    sunDisc(Math.round(W * 0.16), Math.round(hz * 0.3), 4, pal.sun);
+    ridge(40, W, hz - 4, Math.max(4, hz * 0.4), 22, 5, mix(pal.far, '#7a8a8a', 0.2));
+    bands(W, hz, qy - hz, pal.seaTop, pal.seaBot, 5);
+    G.fillStyle = mix('#a39567', pal.far, 0.15);
+    for (let x = 0; x < W; x++) { const y = ground(x); G.fillRect(x, y, 1, hz + 6 - y); }
+    for (let k = 0; k < 46; k++) { const x = Math.floor(hash(k * 5.3) * W), y = ground(x) + 1 + Math.floor(hash(k * 2.9) * 6); if (y < hz + 4) px(x, y, '#6f7a42'); }
+    town(W, ground, Math.ceil(gh / 3) + 1, 1, W - 1, 23, (r, x) => { const d = (x - cx) / (W * 0.5); return Math.round(hz + 5 - r * 3 - gh * 0.55 * d * d); });
+    mausoleum(cx, ground(cx) + 6);
+    R(Math.round(W * 0.8), hz + 3, W, 5, '#9a8a6a'); R(Math.round(W * 0.8), hz + 3, W, 1, '#b8a888');
+    house(Math.round(W * 0.84), hz + 3, 8, 4, '#efe3cc', '#a24a2a'); tower(Math.round(W * 0.95), hz + 3, 4, 7, '#d6c4a0');
+    R(0, hz + 5, Math.round(W * 0.8), 2, '#cdbb98'); for (let x = 0; x < W * 0.8; x += 3) px(x, hz + 4, '#cdbb98');
+  }), 0, 0);
+  for (let k = 0; k < 18; k++) {
+    const y = hz + 7 + Math.floor(hash(k + 70) * Math.max(1, qy - hz - 8)), x = ((hash(k + 3) * W + t * (1 + (k % 3))) % (W + 6)) - 3;
+    R(x, y, 2 + (k % 3), 1, mix(pal.seaTop, pal.wave, 0.55));
+  }
+  harbourBoats(W, hz + 12, qy - 4, t);
+  drawElpis(Math.round(W * 0.3), qy - 3 + Math.round(Math.sin(t * 1.3) * 0.5), { sail: 'furled', crew: 2, t });
+  for (let k = 0; k < 2; k++) gull(((t * (6 + k * 4) + k * 60) % (W + 20)) - 10, 5 + k * 8 + Math.round(Math.sin(t * 2 + k) * 2), t, k);
+  quayFloor(W, H, qy);
+  stalls(W, H, 'halic', t, o);
+}
+// The quay in front: a stall for each merchant, people for hire, and passers-by. Records where to tap.
+function stalls(W, H, port, t, o) {
+  const gy = H - 1, spots = [];
+  const ids = merchantsAt(port);
+  for (const id of ids) {
+    const cx = Math.round(7 + MERCHANTS[id].at * (W - 14));
+    stall(cx, gy, id, t, o.wants && o.wants.has(id));
+    spots.push({ id, kind: 'merchant', x0: cx - 7, x1: cx + 7, y0: gy - 18, y1: H });
+  }
+  if (o.walkers !== false) for (let k = 0; k < 2; k++) walker(Math.round(((t * (3 + k) + k * 77) % (W + 16)) - 8), gy, k ? '#6b7a44' : '#3f6f8e', t, k);
+  if (o.spots) o.spots.push(...spots);
+}
+function drawSea(W, H, t, o) {
+  const pal = dayPal(o.clock, o.storm), hz = Math.max(6, Math.round(H * 0.5));
+  G.drawImage(layer('sk' + W + 'x' + hz + pal.skyTop + pal.skyBot, W, hz, () => bands(W, 0, hz, pal.skyTop, pal.skyBot, 8)), 0, 0);
+  if (o.storm < 0.6) sunDisc(Math.round(W * (0.08 + 0.84 * clamp(o.clock, 0, 1))), Math.round(hz - 3 - Math.sin(Math.PI * clamp(o.clock, 0, 1)) * hz * 0.7), 4, pal.sun);
+  clouds(W, hz, t, pal.cloud, o.seed, o.storm ? 6 : 3);
+  ridge(o.scroll * 0.25, W, hz, Math.max(3, hz * 0.2), 30, o.seed, pal.far);
+  islands(o.scroll * 0.6, W, hz, pal.near, o.seed + 9);
+  G.drawImage(layer('se' + W + 'x' + H + pal.seaTop + pal.seaBot, W, H - hz, () => bands(W, 0, H - hz, pal.seaTop, pal.seaBot, 6)), 0, hz);
+  if (o.storm < 0.6) { const gx = Math.round(W * (0.08 + 0.84 * clamp(o.clock, 0, 1))); for (let y = hz + 1; y < H; y += 2) if (hash(y + Math.floor(t * 3)) > 0.4) R(gx - 2 + Math.floor(hash(y * 3) * 4), y, 2, 1, pal.wave); }
+  waves(W, hz, H, t * (o.storm ? 2 : 1), pal.wave, o.storm > 0.3);
+  const wy = hz + Math.round((H - hz) * 0.42), sx = Math.round(W * 0.3) - 15, bob = reduceMotion ? 0 : Math.round(Math.sin(t * 1.8) * (o.storm ? 1.3 : 0.6));
+  if (o.pirate) drawHemiolia(Math.round(sx + 36 + (1 - o.pirate.near) * W * 0.7), wy + 2 + Math.round(Math.sin(t * 1.5) * 0.6), t, o.pirate.fight);
+  drawElpis(sx, wy + bob, { sail: o.storm > 0.3 ? 'reef' : o.calm ? 'slack' : 'full', row: o.row, t, crew: o.crew, wake: !o.calm });
+  G.fillStyle = mix(pal.seaTop, pal.seaBot, 0.35);
+  for (let x = sx - 2; x < sx + 34; x++) if ((x + Math.floor(t * 4)) % 5) G.fillRect(x, wy + bob + 2, 1, 1);
+  if (o.dolphins > 0) for (let k = 0; k < 2; k++) dolphin(sx + 36 + k * 9, wy + 3, ((t * 0.7 + k * 0.4) % 1));
+  if (o.storm > 0.3) { G.fillStyle = 'rgba(220,228,236,0.55)'; for (let k = 0; k < 40; k++) { const x = (hash(k) * W + t * 40) % W, y = (hash(k + 9) * H + t * 90) % H; G.fillRect(Math.floor(x), Math.floor(y), 1, 2); } }
+}
+function nightSky(W, hz, seed) {
+  bands(W, 0, hz, NIGHT.skyTop, NIGHT.skyBot, 6);
+  for (let k = 0; k < Math.floor(W * hz / 70); k++) px(Math.floor(hash(seed + k) * W), Math.floor(hash(seed + k * 3.3) * hz * 0.9), hash(k * 1.7) > 0.8 ? '#ffffff' : '#9aa4d0');
+  sunDisc(Math.round(W * 0.8), Math.round(hz * 0.3), 3, '#ece8d2'); px(Math.round(W * 0.8) + 1, Math.round(hz * 0.3) - 1, '#c8c4ae');
+}
+function drawCamp(W, H, t, stop) {
+  const hz = Math.max(5, Math.round(H * 0.46)), by = Math.round(H * 0.64), fx = Math.round(W * 0.58), fy = H - 5;
+  G.drawImage(layer('cp' + stop + W + 'x' + H, W, H, () => {
+    nightSky(W, hz, 7);
+    ridge(10, W, hz, Math.max(3, hz * 0.3), 20, 2, NIGHT.far);
+    bands(W, hz, by - hz, NIGHT.seaTop, NIGHT.seaBot, 4);
+    for (let y = hz + 1; y < by; y += 2) R(Math.round(W * 0.8) - 2 + Math.floor(hash(y) * 4), y, 2, 1, '#8a94c0');
+    G.fillStyle = '#1c1830';
+    for (let x = 0; x < W * 0.28; x++) { const top = Math.round(by - 2 - 16 * (1 - x / (W * 0.28)) * fbm(x / 9, 4)); G.fillRect(x, top, 1, by - top); }
+    for (let x = Math.round(W * 0.78); x < W; x++) { const top = Math.round(by - 1 - 13 * smooth(W * 0.78, W, x) * fbm(x / 8, 6)); G.fillRect(x, top, 1, by - top); }
+    bands(W, by, H - by, '#4a4258', '#2e283c', 3);
+    for (let r = 14; r > 2; r -= 3) for (let y = -r; y <= 0; y++) for (let x = -r * 2; x <= r * 2; x += 1) if ((x * x) / 4 + y * y <= r * r && ((x + y) & 1)) px(fx + x, fy + y, r > 9 ? '#57455a' : r > 5 ? '#6a4e58' : '#7e5a56');
+    if (stop === 'symi') { for (let k = 0; k < 4; k++) R(Math.round(W * 0.82) + k * 3, by - 1 - (k % 2), 3, 2, '#8a7a48'); }
+    if (stop === 'triopion') {
+      R(2, by - 14, Math.round(W * 0.2), 2, '#3a3448'); for (let x = 2; x < W * 0.2; x += 3) px(x, by - 15, '#3a3448');
+      for (const x of [6, 13, 20]) px(x, by - 12, '#ffcf7a');
+      R(Math.round(W * 0.84), by + 3, 14, 3, '#3a2a22'); pline(Math.round(W * 0.8), by + 7, Math.round(W * 0.95), by + 9, '#5a5070');
+    }
+    if (stop === 'loryma') {
+      R(Math.round(W * 0.82), by - 12, 16, 9, '#3e3650'); tower(Math.round(W * 0.9), by - 12, 5, 6, '#4a4260');
+      px(Math.round(W * 0.85), by - 8, '#ffcf7a'); px(Math.round(W * 0.92), by - 15, '#ffcf7a');
+    }
+  }), 0, 0);
+  drawElpis(Math.round(W * 0.06), by + 3, { sail: 'furled', crew: 0, t });
+  R(fx - 3, fy, 7, 1, '#3a2418'); R(fx - 2, fy - 1, 5, 1, '#5a3420');
+  const f = Math.floor(t * 8) % 3;
+  R(fx - 1, fy - 3, 3, 2, '#ff9a3a'); px(fx - (f === 1 ? 1 : 0), fy - 4, '#ffcf5a'); px(fx + (f === 2 ? 1 : 0), fy - 5, '#ffe7a0'); px(fx, fy - 3, '#fff2c0');
+  if (!reduceMotion) px(fx + Math.round(Math.sin(t * 3) * 2), fy - 7 - (Math.floor(t * 4) % 4), '#ffb04a');
+  const ring = [[-9, 0, '#3f6f8e', '#b98654'], [-6, -3, '#7a5a3a', '#b07a4c'], [6, -3, '#9a6a3a', '#b9804e'], [9, 0, '#6b7a44', '#b9804e'], [-4, 2, '#5a4a3a', '#a8703f'], [5, 2, '#c8623a', '#cf9a6a']];
+  for (const [dx, dy, robe, face] of ring) sitter(fx + dx, fy + dy + 1, robe, face);
+  if (stop === 'symi') { figure(Math.round(W * 0.86), by + 3, { skin: '#9a6a42', hair: '#1a1210', robe: '#6a5a4a', trim: '#8a7a6a' }, t, 1); }
+  if (stop === 'triopion') sitter(Math.round(W * 0.88), by + 6, '#4a5a6a', '#9a6a42');
+  if (stop === 'loryma') { figure(Math.round(W * 0.74), fy - 1, { skin: '#a8703f', hair: '#2a1d14', robe: '#8a3a2a', trim: '#b0773a' }, t, 2); px(Math.round(W * 0.74) + 2, fy - 13, '#cfd4d8'); }
+}
+function drawAnchor(W, H, t) {
+  const hz = Math.max(5, Math.round(H * 0.46));
+  G.drawImage(layer('an' + W + 'x' + H, W, H, () => {
+    nightSky(W, hz, 13);
+    G.fillStyle = NIGHT.near;
+    for (let x = 0; x < W; x++) { const top = Math.round(hz - 2 - 10 * fbm(x / 14, 8)); G.fillRect(x, top, 1, hz - top + 1); }
+    bands(W, hz, H - hz, NIGHT.seaTop, NIGHT.seaBot, 5);
+  }), 0, 0);
+  for (let y = hz + 1; y < H; y += 2) if (hash(y + Math.floor(t * 2)) > 0.35) R(Math.round(W * 0.8) - 3 + Math.floor(hash(y * 5) * 6), y, 2, 1, '#8a94c0');
+  waves(W, hz, H, t * 0.6, '#5a6496', false);
+  const wy = hz + Math.round((H - hz) * 0.45);
+  drawElpis(Math.round(W * 0.34) - 15, wy + Math.round(Math.sin(t * 1.4) * 0.6), { sail: 'furled', crew: 2, t, lamp: true });
+}
+const SCENES = { rhodes: drawRhodes, halic: drawHalic, sea: drawSea, camp: drawCamp, anchor: drawAnchor };
+// Size a pixel canvas so every art pixel is a whole number of screen pixels.
+function fitPixels(cv, cssW, cssH, cols) {
+  const P = Math.max(2, Math.round(cssW / cols)), W = Math.max(40, Math.ceil(cssW / P)), H = Math.max(20, Math.ceil(cssH / P));
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const sw = W * P + 'px', sh = H * P + 'px';
+  if (cv.style.width !== sw) cv.style.width = sw;
+  if (cv.style.height !== sh) cv.style.height = sh;
+  return { W, H, P, ox: (W * P - cssW) / 2 };
+}
+
+// ---------- the hold: the ship from above, the quay beside it, and cargo you drag between them ----------
+const CELL = 12;   // art pixels to a square
+const HOLD = { cv: null, g: null, lay: null, u: 1, press: null, drag: null, sel: null, flash: null, msg: '' };
+function holdLayout(cssW) {
+  const H = hullOf(S), pl = 2, gap = 3;
+  const hullW = H.cols * CELL, dockW = DOCK.cols * CELL, need = pl * 2 + hullW + gap + dockW + 1;
+  const k = clamp(Math.floor((cssW - 4) / need), 3, 5);
+  const wAp = Math.floor(cssW / k), left = Math.max(0, Math.floor((wAp - need) / 2));
+  const hx = left + pl, hy = 13, dx = hx + hullW + pl + gap + 1, dy = 11;
+  const hAp = Math.max(hy + H.rows * CELL + 12, dy + DOCK.rows * CELL + 2);
+  return { k, H, pl, hx, hy, dx, dy, wAp, hAp, hullW, dockW };
+}
+function mountHold(cv) {
+  HOLD.cv = cv; HOLD.g = cv.getContext('2d');
+  cv.addEventListener('pointerdown', holdDown);
+  cv.addEventListener('pointermove', holdMove);
+  cv.addEventListener('pointerup', holdUp);
+  cv.addEventListener('pointercancel', () => { HOLD.press = null; HOLD.drag = null; });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  sizeHold();
+}
+function sizeHold() {
+  const cv = HOLD.cv;
+  if (!cv) return;
+  const wrap = cv.parentElement, cssW = Math.max(240, wrap.clientWidth || 360);
+  const L = holdLayout(cssW), dpr = window.devicePixelRatio || 1, u = Math.max(1, Math.round(L.k * dpr));
+  HOLD.lay = L; HOLD.u = u;
+  if (cv.width !== L.wAp * u || cv.height !== L.hAp * u) { cv.width = L.wAp * u; cv.height = L.hAp * u; }
+  cv.style.width = (L.wAp * u / dpr) + 'px'; cv.style.height = (L.hAp * u / dpr) + 'px';
+}
+function itemOrigin(it) { const L = HOLD.lay; return it.where === 'hold' ? { x: L.hx + it.x * CELL, y: L.hy + it.y * CELL } : { x: L.dx + it.x * CELL, y: L.dy + it.y * CELL }; }
+function drawHold() {
+  const cv = HOLD.cv;
+  if (!cv || !cv.isConnected || !HOLD.lay) return;
+  const L = HOLD.lay, u = HOLD.u, g = HOLD.g, H = L.H, atSea = S.phase === 'sea';
+  const B = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x * u, y * u, w * u, h * u); };
+  g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
+  g.fillStyle = '#16100c'; g.fillRect(0, 0, cv.width, cv.height);
+  // the hull: planking round the open squares, a pointed bow above and a rounded stern below
+  const span = r => { const row = H.mask[r]; let a = -1, b = -1; for (let x = 0; x < H.cols; x++) if (row[x] !== '.') { if (a < 0) a = x; b = x; } return [a, b]; };
+  const pl = L.pl;
+  for (let r = 0; r < H.rows; r++) { const [a, b] = span(r); B(L.hx + a * CELL - pl, L.hy + r * CELL, (b - a + 1) * CELL + pl * 2, CELL, '#5a3820'); B(L.hx + a * CELL - pl, L.hy + r * CELL, 1, CELL, '#8a5a34'); }
+  const [a0, b0] = span(0), bowW = (b0 - a0 + 1) * CELL + pl * 2, bowX = L.hx + a0 * CELL - pl;
+  for (let i = 1; i <= 12; i++) { const w = Math.max(2, Math.round(bowW * (1 - i / 13))); B(bowX + Math.round((bowW - w) / 2), L.hy - i, w, 1, i === 12 ? '#8a5a34' : '#5a3820'); }
+  B(bowX + 6, L.hy - 5, 2, 2, '#efe3cc'); B(bowX + 7, L.hy - 5, 1, 1, '#1a120d'); B(bowX + bowW - 8, L.hy - 5, 2, 2, '#efe3cc'); B(bowX + bowW - 8, L.hy - 5, 1, 1, '#1a120d');
+  const [aL, bL] = span(H.rows - 1), stW = (bL - aL + 1) * CELL + pl * 2, stX = L.hx + aL * CELL - pl, sy = L.hy + H.rows * CELL;
+  for (let i = 0; i < 6; i++) { const w = Math.round(stW * (1 - i * i / 60)); B(stX + Math.round((stW - w) / 2), sy + i, w, 1, '#5a3820'); }
+  for (const s of [-1, 1]) { const x0 = s < 0 ? stX + 2 : stX + stW - 3; for (let i = 0; i < 8; i++) B(x0 + s * Math.floor(i / 2), sy + 2 + i, 1, 1, '#3a2416'); B(x0 + s * 4 - (s < 0 ? 1 : 0), sy + 8, 2, 3, '#4a2e1a'); }
+  // the deck squares
+  for (let r = 0; r < H.rows; r++) for (let c = 0; c < H.cols; c++) {
+    const ch = H.mask[r][c], x = L.hx + c * CELL, y = L.hy + r * CELL;
+    if (ch === '.') continue;
+    if (ch === 'M') { B(x, y, CELL, CELL, '#7a4e2c'); B(x + 3, y + 3, 6, 6, '#3a2416'); B(x + 4, y + 2, 4, 8, '#3a2416'); B(x + 2, y + 4, 8, 4, '#3a2416'); B(x + 4, y + 4, 4, 4, '#6a4428'); B(x + 4, y + 4, 2, 2, '#8e5c34'); continue; }
+    const bow = r < H.bow;
+    B(x, y, CELL, CELL, bow ? '#9a6238' : '#8a5a34');
+    B(x, y + 4, CELL, 1, bow ? '#8a5430' : '#7a4e2c'); B(x, y + 8, CELL, 1, bow ? '#8a5430' : '#7a4e2c');
+    B(x + CELL - 1, y, 1, CELL, '#6a4226'); B(x, y + CELL - 1, CELL, 1, '#6a4226');
+    if (bow && !itemAt(S, 'hold', c, r)) { B(x + 5, y + 3, 2, 1, '#b07a48'); B(x + 4, y + 4, 4, 1, '#b07a48'); }
+  }
+  // the quay, or the beach, or the sea
+  const dW = L.dockW, dH = DOCK.rows * CELL;
+  B(L.dx - 1, L.dy - 1, dW + 2, dH + 2, atSea ? '#1d4f82' : '#5e5446');
+  for (let r = 0; r < DOCK.rows; r++) for (let c = 0; c < DOCK.cols; c++) {
+    const x = L.dx + c * CELL, y = L.dy + r * CELL;
+    if (atSea) { B(x, y, CELL, CELL, '#2f6f9e'); B(x + ((r * 5 + c * 3) % 8), y + 4, 3, 1, '#66b8db'); continue; }
+    const beach = S.phase === 'camp';
+    B(x, y, CELL, CELL, beach ? '#c9b48a' : '#a89a80'); B(x + CELL - 1, y, 1, CELL, beach ? '#b09a70' : '#8c7f68'); B(x, y + CELL - 1, CELL, 1, beach ? '#b09a70' : '#8c7f68');
+  }
+  g.font = (7 * u) + 'px "Pixelify Sans", ui-monospace, monospace'; g.textBaseline = 'alphabetic';
+  g.fillStyle = '#bba887'; g.fillText(atSea ? 'SEA' : S.phase === 'camp' ? 'BEACH' : 'QUAY', L.dx * u, (L.dy - 3) * u);
+  // the cargo
+  const dragId = HOLD.drag ? HOLD.drag.id : -1;
+  for (const it of S.items) {
+    if (it.id === dragId) continue;
+    if (atSea && it.where === 'dock') continue;
+    const o = itemOrigin(it);
+    paintItem(g, u, it, o.x, o.y, it.rot, 1);
+    const d = dims(it), Gd = GOODS[it.g];
+    if (Gd.food || Gd.water) { const full = Gd.food || Gd.water; B(o.x + 1, o.y + CELL - 3, CELL - 2, 2, '#1a120d'); B(o.x + 1, o.y + CELL - 3, Math.max(0, Math.round((CELL - 2) * it.fill / full)), 2, Gd.water ? '#66b8db' : '#eac05a'); }
+    if (Gd.fragile && it.where === 'hold' && !isSafe(S, it)) { B(o.x + CELL - 6, o.y, 6, 8, '#16100c'); B(o.x + CELL - 5, o.y + 1, 4, 6, '#e8402e'); B(o.x + CELL - 4, o.y + 2, 2, 2, '#ffffff'); B(o.x + CELL - 4, o.y + 5, 2, 1, '#ffffff'); }
+    if (HOLD.sel === it.id) { const w = d.w * CELL, h = d.h * CELL; B(o.x, o.y, w, 1, '#eac05a'); B(o.x, o.y + h - 1, w, 1, '#eac05a'); B(o.x, o.y, 1, h, '#eac05a'); B(o.x + w - 1, o.y, 1, h, '#eac05a'); }
+  }
+  // the thing being dragged, and where it would land
+  const D = HOLD.drag;
+  if (D) {
+    const it = S.items.find(i => i.id === D.id);
+    if (it) {
+      if (D.target) {
+        const t = D.target, d = dims(it, D.rot), ox = t.where === 'hold' ? L.hx : L.dx, oy = t.where === 'hold' ? L.hy : L.dy;
+        g.globalAlpha = 0.5;
+        for (let yy = 0; yy < d.h; yy++) for (let xx = 0; xx < d.w; xx++) B(ox + (t.x + xx) * CELL, oy + (t.y + yy) * CELL, CELL, CELL, t.ok ? '#b8c468' : '#ec6f80');
+        g.globalAlpha = 1;
+      }
+      paintItem(g, u, it, Math.round(D.left), Math.round(D.top), D.rot, 0.92);
+    }
+  }
+}
+function paintItem(g, u, it, x, y, rot, alpha) {
+  const spr = itemSprite(it);
+  g.globalAlpha = alpha;
+  if (!rot) g.drawImage(spr, x * u, y * u, spr.width * u, spr.height * u);
+  else { g.save(); g.translate((x + spr.height) * u, y * u); g.rotate(Math.PI / 2); g.drawImage(spr, 0, 0, spr.width * u, spr.height * u); g.restore(); }
+  g.globalAlpha = 1;
+}
+function holdPoint(e) {
+  const r = HOLD.cv.getBoundingClientRect(), L = HOLD.lay;
+  return { x: (e.clientX - r.left) / r.width * L.wAp, y: (e.clientY - r.top) / r.height * L.hAp };
+}
+function holdHit(p) {
+  const L = HOLD.lay, cx = Math.floor((p.x - L.hx) / CELL), cy = Math.floor((p.y - L.hy) / CELL);
+  if (cx >= 0 && cy >= 0 && cx < L.H.cols && cy < L.H.rows) return itemAt(S, 'hold', cx, cy);
+  const dx = Math.floor((p.x - L.dx) / CELL), dy = Math.floor((p.y - L.dy) / CELL);
+  if (S.phase !== 'sea' && dx >= 0 && dy >= 0 && dx < DOCK.cols && dy < DOCK.rows) return itemAt(S, 'dock', dx, dy);
+  return null;
+}
+function holdDown(e) {
+  if (!HOLD.lay || !canEditHold(S)) return;
+  if (HOLD.drag && e.pointerId !== HOLD.drag.pointer) { turnDrag(); e.preventDefault(); return; }   // a second finger turns it
+  const p = holdPoint(e), it = holdHit(p);
+  Snd.init();
+  if (!it) { HOLD.sel = null; HOLD.msg = ''; return; }
+  const o = itemOrigin(it);
+  HOLD.press = { id: it.id, sx: p.x, sy: p.y, offX: p.x - o.x, offY: p.y - o.y, pointer: e.pointerId, touch: e.pointerType === 'touch' };
+  HOLD.sel = it.id; HOLD.msg = '';
+  try { HOLD.cv.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  e.preventDefault();
+}
+function holdMove(e) {
+  const P = HOLD.press;
+  if (!P || e.pointerId !== P.pointer) return;
+  const p = holdPoint(e);
+  if (!HOLD.drag) {
+    if (Math.hypot(p.x - P.sx, p.y - P.sy) < 3) return;
+    const it = S.items.find(i => i.id === P.id);
+    if (!it) return;
+    HOLD.drag = { id: it.id, rot: it.rot, pointer: P.pointer, lift: P.touch ? 9 : 0, left: 0, top: 0, target: null, offX: P.offX, offY: P.offY, px: p.x, py: p.y };
+  }
+  HOLD.drag.px = p.x; HOLD.drag.py = p.y;
+  aimDrag();
+  e.preventDefault();
+}
+function aimDrag() {
+  const D = HOLD.drag, L = HOLD.lay, it = S.items.find(i => i.id === D.id);
+  if (!it) return;
+  const d = dims(it, D.rot);
+  D.left = D.px - Math.min(D.offX, d.w * CELL - 2); D.top = D.py - Math.min(D.offY, d.h * CELL - 2) - D.lift;
+  const cx = D.left + d.w * CELL / 2, cy = D.top + d.h * CELL / 2;
+  const inHull = cx > L.hx - 8 && cx < L.hx + L.hullW + 8 && cy > L.hy - 10 && cy < L.hy + L.H.rows * CELL + 8;
+  const inDock = S.phase !== 'sea' && cx > L.dx - 6 && cx < L.dx + L.dockW + 8 && cy > L.dy - 8 && cy < L.dy + DOCK.rows * CELL + 6;
+  if (inHull || inDock) {
+    const where = inHull ? 'hold' : 'dock', ox = inHull ? L.hx : L.dx, oy = inHull ? L.hy : L.dy;
+    const x = Math.round((D.left - ox) / CELL), y = Math.round((D.top - oy) / CELL);
+    D.target = { where, x, y, ok: fits(S, it, where, x, y, D.rot) };
+  } else D.target = null;
+}
+function turnDrag() {
+  const D = HOLD.drag, it = D && S.items.find(i => i.id === D.id);
+  if (!it || GOODS[it.g].w === GOODS[it.g].h) return;
+  D.rot = 1 - D.rot; [D.offX, D.offY] = [D.offY, D.offX];
+  aimDrag(); Snd.turn();
+}
+function holdUp(e) {
+  const P = HOLD.press;
+  if (!P || e.pointerId !== P.pointer) return;
+  const D = HOLD.drag;
+  HOLD.press = null;
+  if (D) {
+    HOLD.drag = null;
+    const t = D.target;
+    if (t && t.ok && moveItem(S, D.id, t.where, t.x, t.y, D.rot)) { Snd.place(); HOLD.flash = D.id; save(); }
+    else if (t) { Snd.nope(); HOLD.msg = t.where === 'hold' && GOODS[S.items.find(i => i.id === D.id).g].bow ? 'The bolt-thrower only fits in the bow squares, at the top.' : 'That does not fit there.'; }
+    return;
+  }
+  const it = S.items.find(i => i.id === P.id);
+  if (!it) return;
+  if (GOODS[it.g].w !== GOODS[it.g].h) {
+    if (rotateItem(S, it.id)) { Snd.turn(); save(); } else { Snd.nope(); HOLD.msg = 'There is no room to turn it here. Drag it somewhere with more space.'; }
+  }
+}
+document.addEventListener('keydown', e => { if (HOLD.drag && (e.key === 'r' || e.key === 'R' || e.key === ' ')) { turnDrag(); e.preventDefault(); } });
+function itemInfo(it) {
+  const Gd = GOODS[it.g];
+  if (it.g === 'kit') { const H = HIRES[it.owner]; return `<b>${esc(H.name)}’s ${esc(H.kit.toLowerCase())}.</b> ${esc(H.name)} sails only if this is in the hold.`; }
+  let t = `<b>${esc(Gd.name)}</b>, ${esc(Gd.unit)}, ${Gd.w}×${Gd.h}. ${esc(Gd.desc)}`;
+  if (Gd.food || Gd.water) t += ` <span class="${it.fill < 3 ? 'bad' : 'good'}">${Math.round(it.fill * 10) / 10} of ${Gd.food || Gd.water} left.</span>`;
+  if (Gd.fragile && it.where === 'hold') t += isSafe(S, it) ? ' <span class="good">It touches something soft, so it is safe.</span>' : ' <span class="bad">It touches nothing soft, so rough water may break it.</span>';
+  return t;
+}
+
+// ---------- the ledger below the window: panels, sheets, the theatre, and the loop ----------
+const SAVE_KEY = 'emporos-save-v1', SOUND_KEY = 'emporos-muted';
+const DEV = { speed: 1 };
+const UI = { tab: 'main', mounted: '', sheet: null, outcome: null, reply: null, queue: [], shownAt: -1e9, holdFor: 0, lastWhere: '', speed: 1,
+  pirate: null, dolphins: 0, storm: 0, spotsKey: '', silverShown: null, armed: null, bannerT: 0, wants: new Set(), vsig: '', mood: '', tips: {} };
+let S = null;
+const SHORT = { wine: 'wine', figs: 'figs', sponge: 'sponges', cups: 'cups', honey: 'honey', cloth: 'cloth', scent: 'perfume', marble: 'marble', hermes: 'Hermes', barley: 'barley', water: 'water', bolt: 'bolt-thrower' };
+const INTRO = [
+  { year: 'Rhodes · spring, 290 BC' },
+  'Fifteen years earlier a king had besieged Rhodes for a year and failed to take it. People in Rhodes still talked about this, mostly to visitors.',
+  'The king sailed away and left his siege engines behind. The Rhodians sold them, and with the money they were building a god.',
+  'The god was Helios, the Sun, in bronze. When he was finished he would be taller than any statue in the world. So far they had his feet.',
+  'Ariston, son of Damon, was twenty-four. He had a small ship, a sea loan, and a great deal of advice.',
+  'The ship was called Elpis, which means hope. Her last owner had sold her cheaply. That is also a kind of hope.',
+  'Antimachos the banker had lent him 150 drachmas against the ship and her cargo.',
+  '“Halicarnassus,” the banker said. “Three days up the coast. Bring her home and you owe me 195. If she sinks, you owe me nothing. Please don’t let her sink.”',
+];
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* storage may be unavailable */ } }
+function loadSaved() { try { const j = localStorage.getItem(SAVE_KEY); const s = j ? JSON.parse(j) : null; return s && s.v === VERSION && s.items ? s : null; } catch (e) { return null; } }
+let toastT = 0;
+function toast(msg) { els.toast.textContent = msg; els.toast.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => els.toast.classList.remove('on'), 2600); }
+function tipOnce(key, msg) { if (UI.tips[key] || S.said['tip:' + key]) return; UI.tips[key] = 1; S.said['tip:' + key] = 1; toast(msg); }
+const fmtDays = d => { const r = Math.floor(d * 10) / 10; return r === 1 ? 'one day' : r + ' days'; };
+const timeWord = e => e < 0.35 ? 'by mid-morning' : e < 0.55 ? 'around midday' : e < 0.8 ? 'in the afternoon' : 'just before dark';
+const closeBtn = () => '<button class="btn wide" type="button" data-act="close">Done</button>';
+
+// ---- the quay ----
+function portGoal() {
+  if (S.home) return 'Sell what you brought from Halicarnassus, then repay Antimachos the banker.';
+  if (S.port === 'rhodes') return 'Buy cargo Halicarnassus will want, and pack it into the hold. Take food and water for three days, for everyone aboard.';
+  return 'Sell what you brought, then buy what Rhodes will want. Pirates have been seen off Kos.';
+}
+function personCard(id) {
+  const m = MERCHANTS[id], want = wants(S, id);
+  const sells = Object.keys(m.sells).map(g => SHORT[g] + ' <b>' + buyPrice(S, id, g) + '</b>').join(', ');
+  const buys = Object.keys(m.buys).map(g => SHORT[g] + ' <b>' + sellPrice(S, id, g) + '</b>').join(', ');
+  const line = m.bank ? 'Holds your sea loan' : [sells && 'Sells ' + sells, buys && 'Buys ' + buys].filter(Boolean).join(' · ');
+  const flag = m.bank && S.home && !S.loan.paid ? '<span class="flag">Waiting</span>' : want.length ? `<span class="flag">Buys your ${SHORT[want[0]]}</span>` : '';
+  return `<button class="person${flag ? ' want' : ''}" type="button" data-m="${id}"><img class="pix" src="${faceURL(id)}" alt=""><span class="nm">${esc(m.name)}${flag}</span><span class="rl">${esc(m.role)}</span><span class="tr">${line}</span></button>`;
+}
+function hireCard(hid) {
+  const H = HIRES[hid], aboard = S.crew.some(c => c.id === hid);
+  return `<button class="person" type="button" data-hire="${hid}"><img class="pix" src="${faceURL(hid)}" alt=""><span class="nm">${esc(H.name)}${aboard ? '<span class="flag aboard">Aboard</span>' : ''}</span><span class="rl">${esc(H.role)}, for hire</span><span class="tr">Fee <b>${H.fee}</b> · ${esc(H.note)}</span></button>`;
+}
+function quayPanel() {
+  const P = PORTS[S.port], ck = sailCheck(S);
+  let h = `<h1 class="place">${P.name}</h1><p class="sub">${S.home ? 'Home again' : S.port === 'rhodes' ? 'Home port' : 'In port'} · spring, 290 BC</p><p class="goal">${esc(portGoal())}</p>`;
+  if (S.home) h += `<button class="btn primary wide" type="button" data-m="bank">See Antimachos the banker<small>The sea loan is due: ${S.loan.due} dr</small></button>`;
+  else {
+    const low = ck.foodDays < ck.days || ck.waterDays < ck.days;
+    h += `<button class="btn primary wide" type="button" data-act="sail">Set sail for ${ck.dest}<small>${low ? 'Low on supplies. ' : ''}Food for ${fmtDays(ck.foodDays)}, water for ${fmtDays(ck.waterDays)}. The voyage takes about ${num(ck.days)}.</small></button>`;
+  }
+  h += '<h2 class="sec">On the quay</h2><div class="people">';
+  for (const id of merchantsAt(S.port)) h += personCard(id);
+  for (const hid of P.hires) h += hireCard(hid);
+  return h + '</div>';
+}
+function merchantSheet(id) {
+  const m = MERCHANTS[id], v = S.visit, here = inPort(S, m.port);
+  let h = `<header class="sheet-head"><img class="pix" src="${faceURL(id)}" alt=""><div><h2>${esc(m.name)}</h2><p>${esc(m.role)} · ${PORTS[m.port].name}</p></div></header>`;
+  h += ((S.home && m.home) ? m.home : m.hello).map(l => `<p class="quote">${esc(l)}</p>`).join('');
+  if (m.bank) return h + bankBody() + closeBtn();
+  const sells = Object.keys(m.sells);
+  if (sells.length) {
+    h += '<h3 class="sec">Sells</h3><div class="trades">';
+    for (const g of sells) {
+      const p = buyPrice(S, id, g), left = stockLeft(S, id, g), Gd = GOODS[g];
+      const note = `${Gd.unit}, ${Gd.w}×${Gd.h}${Gd.fragile ? ', fragile' : ''}${Gd.soft ? ', soft' : ''}${Gd.bow ? ', bow only' : ''}${left !== Infinity ? ' · ' + (left > 0 ? left + ' left' : 'sold out') : ''}`;
+      h += `<div class="trade"><img class="pix" src="${itemIcon(g)}" alt=""><span class="tn">${esc(Gd.name)}<small>${esc(note)}</small></span><span class="acts"><b class="pr">${p} dr</b><button class="btn" type="button" data-act="buy" data-m="${id}" data-g="${g}"${left <= 0 || S.silver < p || !here ? ' disabled' : ''}>Buy</button></span></div>`;
+    }
+    h += '</div>';
+  }
+  const list = Object.keys(m.buys).concat(sells.filter(g => !m.buys[g] && sellBase(m, g) && countGood(S, g) > 0));
+  if (list.length) {
+    h += '<h3 class="sec">Buys</h3><div class="trades">';
+    for (const g of list) {
+      const n = countGood(S, g), p = sellPrice(S, id, g), Gd = GOODS[g];
+      h += `<div class="trade"><img class="pix" src="${itemIcon(g)}" alt=""><span class="tn">${esc(Gd.name)}<small>${n ? 'You have ' + n : 'You have none'}${m.buys[g] ? '' : ' · buys it back for less'}</small></span><span class="acts"><b class="pr">${p} dr</b><button class="btn" type="button" data-act="sell" data-m="${id}" data-g="${g}"${n && here ? '' : ' disabled'}>Sell</button>${n > 1 && here ? `<button class="btn" type="button" data-act="sellall" data-m="${id}" data-g="${g}">All</button>` : ''}</span></div>`;
+    }
+    h += '</div>';
+  }
+  if (m.refill) {
+    const empty = S.items.filter(i => GOODS[i.g].water && i.fill < GOODS.water.water).length;
+    h += `<p class="note">The fountain on the quay is free.</p><button class="btn wide" type="button" data-act="refill"${empty ? '' : ' disabled'}>${empty ? 'Fill ' + num(empty) + ' water jar' + (empty > 1 ? 's' : '') + ' at the fountain' : 'Your water jars are full'}</button>`;
+  }
+  if (here && v) {
+    const deal = v.deal[id] || 1, closed = v.closed[id];
+    const txt = deal > 1.004 ? `Prices here are ${Math.round((deal - 1) * 100)}% better today.${closed ? ' That is the final offer.' : ''}` : closed ? 'That is the final offer.' : 'Ask for a better price. Push too hard and it gets worse.';
+    h += `<div class="deal"><button class="btn" type="button" data-act="haggle" data-m="${id}"${closed ? ' disabled' : ''}>Haggle</button><span>${txt}</span></div>`;
+  }
+  h += `<p class="reply${UI.reply && UI.reply.good ? ' good' : ''}" aria-live="polite">${UI.reply ? esc(UI.reply.text) : ''}</p>`;
+  return h + closeBtn();
+}
+function bankBody() {
+  const kv = rows => `<dl class="kv">${rows.map(([k, v, c]) => `<dt>${k}</dt><dd${c ? ` class="${c}"` : ''}>${v}</dd>`).join('')}</dl>`;
+  if (S.home && !S.loan.paid) {
+    const pay = Math.min(S.silver, S.loan.due), short = S.loan.due - pay, left = S.items.filter(isCargo).length;
+    return kv([['Lent', LOAN.principal + ' dr, against Elpis and her cargo'], ['Due now', S.loan.due + ' dr'], ['You have', S.silver + ' dr', short ? 'bad' : 'good']]) +
+      `<p class="note">${left ? `You still have ${num(left)} thing${left > 1 ? 's' : ''} to sell. ` : ''}Paying ends the season.</p>` +
+      `<button class="btn primary wide" type="button" data-act="repay">${short ? 'Pay what you have, ' + pay + ' dr<small>The rest is written down as a debt</small>' : 'Pay ' + S.loan.due + ' dr and end the season'}</button>`;
+  }
+  return kv([['Lent', LOAN.principal + ' dr, against Elpis and her cargo'], ['Due', S.loan.due + ' dr, when she comes home'], ['If she sinks', 'You owe nothing']]) +
+    '<p class="note">This is a sea loan. The banker shares the risk of the voyage, so the interest is steep.</p>';
+}
+function hireSheet(hid) {
+  const H = HIRES[hid], c = S.crew.find(x => x.id === hid), here = inPort(S, H.port);
+  let h = `<header class="sheet-head"><img class="pix" src="${faceURL(hid)}" alt=""><div><h2>${esc(H.name)}</h2><p>${esc(H.role)} · for hire in ${PORTS[H.port].name}</p></div></header><p class="quote">${esc(H.pitch)}</p>`;
+  h += `<dl class="kv"><dt>Fee</dt><dd>${H.fee} dr for the voyage</dd><dt>In a fight</dt><dd>${H.heal ? 'Not much use. But while he is aboard, nobody dies of their wounds, and the hurt are mended by morning.' : 'Shoots before the pirates can board, then fights.'}</dd><dt>Needs</dt><dd>One square in the hold for his gear, and food and water like anyone else.</dd></dl>`;
+  if (c) h += c.paidAt === S.port && S.phase === 'port' ? `<button class="btn wide" type="button" data-act="dismiss" data-hire="${hid}">Let him go<small>He gives back the fee</small></button>` : '<p class="note">He is aboard.</p>';
+  else if (here) h += `<button class="btn primary wide" type="button" data-act="hire" data-hire="${hid}"${S.silver < H.fee ? ' disabled' : ''}>Hire ${esc(H.name)} for ${H.fee} dr<small>His gear goes on the quay. Pack it into the hold.</small></button>`;
+  return h + `<p class="reply good" aria-live="polite">${UI.reply ? esc(UI.reply.text) : ''}</p>` + closeBtn();
+}
+function sailSheet() {
+  const ck = sailCheck(S), wF = ck.foodDays < ck.days, wW = ck.waterDays < ck.days, risk = atRisk(S).length;
+  let h = `<h2 class="ev-title">Set sail for ${ck.dest}?</h2><dl class="kv"><dt>Aboard</dt><dd>${cap(num(ck.crew))} people</dd>` +
+    `<dt>Food</dt><dd class="${wF ? 'bad' : 'good'}">${fmtDays(ck.foodDays)}</dd><dt>Water</dt><dd class="${wW ? 'bad' : 'good'}">${fmtDays(ck.waterDays)}</dd>` +
+    `<dt>Voyage</dt><dd>About ${num(ck.days)} days, sleeping on beaches</dd></dl>`;
+  if (wF || wW) h += `<p class="note">${wW ? 'You will run short of water. Thirsty sailors row badly and fall sick.' : 'You will run short of food. Hungry sailors row and fight badly.'} The harbour stores sell barley and water.</p>`;
+  if (ck.goods.length) h += `<p class="note">Left on the quay, and sold back for half: ${esc(listOf(ck.goods))}${ck.refund ? ' (' + ck.refund + ' dr)' : ''}.</p>`;
+  if (ck.unhire.length) h += `<p class="note">${ck.unhire.map(id => HIRES[id].name).join(' and ')} will stay ashore, because ${ck.unhire.length > 1 ? 'their gear is' : 'his gear is'} not in the hold. The fee comes back.</p>`;
+  if (risk) h += `<p class="note">${cap(num(risk))} fragile thing${risk > 1 ? 's touch' : ' touches'} nothing soft.</p>`;
+  return h + '<div class="btns"><button class="btn" type="button" data-act="close">Not yet</button><button class="btn primary" type="button" data-act="sail-yes">Set sail</button></div>';
+}
+function eventSheet() {
+  if (UI.outcome) return `<h2 class="ev-title">${esc(UI.outcome.title)}</h2><div class="ev-text">${UI.outcome.lines.map(l => `<p class="out">${esc(l)}</p>`).join('')}</div><div class="choices"><button class="btn primary wide" type="button" data-act="continue">Go on</button></div>`;
+  const E = EVENTS[S.pending];
+  return `<h2 class="ev-title">${esc(E.title)}</h2><div class="ev-text">${E.text(S).map(l => `<p>${esc(l)}</p>`).join('')}</div><div class="choices">${E.choices(S).map(c => `<button class="btn choice" type="button" data-act="choose" data-c="${c.id}">${esc(c.label)}${c.hint ? `<small>${esc(c.hint)}</small>` : ''}</button>`).join('')}</div>`;
+}
+function menuSheet() {
+  return `<h2 class="ev-title">Emporos</h2><p class="note">Chapter I · Halicarnassus. The voyage saves itself in this browser.</p><div class="stack">` +
+    `<button class="btn wide" type="button" data-act="sound">${Snd.muted ? 'Turn the sound on' : 'Turn the sound off'}</button>` +
+    `<button class="btn wide" type="button" data-act="restart">${UI.armed === 'restart' ? 'Tap again to start over' : 'Start the chapter again'}</button>` +
+    `<button class="btn wide" type="button" data-act="close">Back to the voyage</button></div>` +
+    '<p class="note">The places, the kings and the god of Rhodes are real. Ariston and his crew are not. Every picture and sound is made in code.</p>';
+}
+function openSheet(kind, arg) { UI.sheet = { kind, arg }; UI.reply = null; UI.outcome = null; UI.armed = null; els.sheet.hidden = false; renderSheet(true); }
+function renderSheet(first) {
+  if (!UI.sheet) return;
+  const { kind, arg } = UI.sheet;
+  setHTML(els.sheetCard, kind === 'merchant' ? merchantSheet(arg) : kind === 'hire' ? hireSheet(arg) : kind === 'event' ? eventSheet() : kind === 'sail' ? sailSheet() : menuSheet());
+  if (first) els.sheetCard.scrollTop = 0;
+}
+function closeSheet() { UI.sheet = null; UI.reply = null; UI.outcome = null; els.sheet.hidden = true; els.sheetCard._html = ''; }
+
+// ---- at sea, at night, aboard ----
+const voyageSig = () => { const v = S.voyage; return [v.day, v.wind, v.row, S.half, UI.speed, S.dayN, mouths(S), S.crew.map(c => c.st).join('')].join('|'); };
+function voyagePanel() {
+  const v = S.voyage, D = DAYS[v.day];
+  return `<p class="sub">Day ${S.dayN} · ${esc(WIND[v.wind].name)}</p><h1 class="leg">${esc(STOPS[D.from].name)} to ${esc(STOPS[D.to].name)}</h1>` +
+    '<div class="bars"><div class="bar"><span>Distance</span><div class="track"><i id="vDist"></i></div></div><div class="bar"><span>Daylight</span><div class="track sun" id="vSunT"><i id="vSun"></i></div></div></div>' +
+    '<p class="eta" id="vEta"></p>' +
+    `<div class="ctrl"><span>Oars</span><div class="seg"><button type="button" data-act="row" data-v="0" aria-pressed="${!v.row}">Sail only</button><button type="button" data-act="row" data-v="1" aria-pressed="${!!v.row}">Row</button></div></div>` +
+    `<div class="ctrl"><span>Rations</span><div class="seg"><button type="button" data-act="half" data-v="0" aria-pressed="${!S.half}">Full</button><button type="button" data-act="half" data-v="1" aria-pressed="${!!S.half}">Half</button></div></div>` +
+    `<div class="ctrl"><span>Speed</span><div class="seg">${[1, 2, 3].map(k => `<button type="button" data-act="speed" data-v="${k}" aria-pressed="${UI.speed === k}">${k}×</button>`).join('')}</div></div>` +
+    '<p class="note" id="vSupply"></p>' + (S.crew.some(c => c.st !== 'ok') ? `<p class="note">${S.crew.filter(c => c.st !== 'ok').map(c => esc(c.name) + ' is ' + c.st).join('. ')}.</p>` : '');
+}
+function updateVoyageLive() {
+  const v = S.voyage, to = STOPS[DAYS[v.day].to].name, e = eta(S), late = e > 1;
+  const d = $('#vDist'), sun = $('#vSun');
+  if (!d) return;
+  d.style.width = Math.round(100 * clamp(v.prog / v.dist, 0, 1)) + '%';
+  sun.style.width = Math.round(100 * clamp(v.clock, 0, 1)) + '%';
+  $('#vSunT').classList.toggle('late', late);
+  const eta$ = $('#vEta');
+  eta$.classList.toggle('bad', late);
+  setText(eta$, late ? `At this speed you will not reach ${to} before dark.${v.row ? '' : ' Rowing would help.'}` : `You will reach ${to} ${timeWord(e)}.`);
+  const pv = provisions(S), need = dailyNeed(S, v.row);
+  setText($('#vSupply'), `${cap(num(mouths(S)))} aboard. Food for ${fmtDays(pv.food / need.food)}, water for ${fmtDays(pv.water / need.water)} at this pace.${v.row ? ' Rowers drink twice as much.' : ''}`);
+}
+function campPanel() {
+  const c = S.camp, st = STOPS[c.stop], C = CAMPS[c.stop], hint = typeof C.hint === 'function' ? C.hint(S) : C.hint;
+  let h = `<h1 class="place">${esc(st.name)}</h1><p class="sub">Night ${S.dayN} · ${esc(st.where)}</p>`;
+  const told = S.log.slice(c.from == null ? S.log.length : c.from).filter(e => e.tone !== 'quiet' && e.tone !== 'choice');
+  if (told.length) h += `<div class="journal">${told.map(e => `<p class="${e.tone === 'bad' ? 'bad' : ''}">${esc(e.text)}</p>`).join('')}</div>`;
+  if (hint) h += `<p class="goal">${esc(hint)}</p>`;
+  if (C.actions.length) {
+    h += '<div class="stack">';
+    for (const a of C.actions) {
+      const n = c.n[a.id] || 0, done = (a.once && c.did[a.id]) || (a.limit && n >= a.limit);
+      const label = done && a.once ? (a.refill ? 'The water jars are full' : 'Fish bought for tomorrow') : a.label;
+      const sub = done ? 'Done' : a.price ? a.price + ' dr' + (a.limit ? ' each · ' + (a.limit - n) + ' left' : '') : 'Free';
+      h += `<button class="btn wide" type="button" data-act="camp" data-id="${a.id}"${done || (a.price && S.silver < a.price) ? ' disabled' : ''}>${esc(label)}<small>${sub}</small></button>`;
+    }
+    h += '</div>';
+  }
+  const beach = dockItems(S).length;
+  if (beach) h += `<p class="note">${cap(num(beach))} thing${beach > 1 ? 's are' : ' is'} on the beach. Pack ${beach > 1 ? 'them' : 'it'} into the hold, or ${beach > 1 ? 'they stay' : 'it stays'} here.</p>`;
+  h += '<h2 class="sec">At dawn</h2>';
+  if (needsRoute(S)) h += '<div class="stack"><button class="btn primary wide" type="button" data-act="sleep" data-route="coast">Follow the coast, by Loryma<small>Two days, with a spring on the way</small></button><button class="btn wide" type="button" data-act="sleep" data-route="open">Cut straight across to Rhodes<small>One long day on rough water. Pack fragile cargo against something soft.</small></button></div>';
+  else h += `<button class="btn primary wide" type="button" data-act="sleep">${c.stop === 'atsea' ? 'Wait for first light' : 'Sleep, and sail at dawn'}</button>`;
+  const pv = provisions(S), n = mouths(S);
+  return h + `<p class="note">${cap(num(n))} aboard. Food for ${fmtDays(pv.food / n)}, water for ${fmtDays(pv.water / n)}.</p>`;
+}
+function holdPanel() {
+  return '<p class="hold-help" id="holdHelp"></p><div class="hold-wrap"><canvas id="holdCanvas" role="img" aria-label="The hold of Elpis, seen from above, with the quay beside it"></canvas></div>' +
+    '<div class="meters" id="holdMeters"></div><p class="hold-info" id="holdInfo" aria-live="polite"></p><div class="btns" id="holdBtns"></div>';
+}
+function updateHoldLive() {
+  const sea = S.phase === 'sea', place = S.phase === 'camp' ? 'beach' : 'quay', n = dockItems(S).length, pv = provisions(S), m = Math.max(1, mouths(S));
+  setText($('#holdHelp'), sea ? 'At sea you can move things around the hold, but not unload them. Tap a thing to turn it.' :
+    `Drag things between the ${place} and the hold. Tap a thing to turn it, or turn it mid-drag with a second finger. The bolt-thrower fits only in the bow, at the top. Fragile cargo should touch something soft.`);
+  setHTML($('#holdMeters'), `<span>Hold <b>${holdUsed(S)}</b> of ${holdCells(S)} squares</span>${sea ? '' : `<span>${cap(place)} <b>${n}</b></span>`}<span>Food <b>${fmtDays(pv.food / m)}</b></span><span>Water <b>${fmtDays(pv.water / m)}</b></span>`);
+  const it = HOLD.sel != null && S.items.find(i => i.id === HOLD.sel);
+  setHTML($('#holdInfo'), HOLD.msg ? esc(HOLD.msg) : it ? itemInfo(it) : (n && !sea ? `${cap(num(n))} thing${n > 1 ? 's' : ''} on the ${place}. Drag ${n > 1 ? 'them' : 'it'} into the hold, or let the crew pack.` : 'Tap a thing to see what it is.'));
+  setHTML($('#holdBtns'), sea ? '' : `<button class="btn" type="button" data-act="autopack"${n ? '' : ' disabled'}>Let the crew pack</button><button class="btn" type="button" data-act="unpack"${holdUsed(S) ? '' : ' disabled'}>Unload onto the ${place}</button>`);
+}
+function crewPanel() {
+  const st = c => c.st === 'ok' ? 'Well' : c.st === 'wounded' ? 'Wounded' : 'Sick';
+  let h = '<h2 class="sec" style="margin-top:2px">Aboard Elpis</h2><div class="crew">';
+  for (const c of S.crew) h += `<div class="mate"><img class="pix" src="${faceURL(c.id)}" alt=""><span class="nm">${esc(c.name)}<small>${esc(c.role)}</small></span><span class="nt">${esc(c.note)}</span><span class="st ${c.st}">${st(c)}</span></div>`;
+  h += '</div>';
+  if (S.lost.length) h += `<p class="note">Lost: ${S.lost.map(l => esc(l.name) + ', buried at ' + esc(l.where)).join('; ')}.</p>`;
+  const n = mouths(S);
+  h += `<p class="note">A sack of barley feeds ten people for a day, and a jar of water does the same. With ${num(n)} aboard, each lasts about ${fmtDays(10 / n)}. Rowers drink twice as much.</p>`;
+  if (S.phase === 'port' && PORTS[S.port].hires.length) h += '<h2 class="sec">For hire here</h2><div class="people">' + PORTS[S.port].hires.map(hireCard).join('') + '</div>';
+  return h;
+}
+function ledgerPanel() {
+  const goals = [['Buy cargo and sail to Halicarnassus', !!S.flags.reachedHalic], ['Trade in Halicarnassus', Object.keys(S.trades).some(id => MERCHANTS[id].port === 'halic')],
+    ['Sail home to Rhodes', S.home], ['Repay the sea loan of ' + LOAN.due + ' dr', S.loan.paid]];
+  let h = `<h2 class="sec" style="margin-top:2px">This season</h2><ul class="goals">${goals.map(([t, d]) => `<li class="${d ? 'done' : ''}"><span class="box"></span><span>${esc(t)}</span></li>`).join('')}</ul>`;
+  h += `<dl class="kv"><dt>Silver</dt><dd>${S.silver} dr</dd><dt>Sea loan</dt><dd>${S.loan.paid ? 'Repaid' : LOAN.due + ' dr, due on return'}</dd><dt>Good name</dt><dd>Rhodes ${Math.round(S.rep.rhodes)}, Halicarnassus ${Math.round(S.rep.halic)}. Fair trading builds it, and it makes haggling easier.</dd>` +
+    (S.proxenos.halic ? `<dt>A friend</dt><dd>${esc(MERCHANTS[S.proxenos.halic].name)}, in Halicarnassus. Prices there are a little better for you.</dd>` : '') + '</dl>';
+  h += '<h2 class="sec">The story so far</h2><ol class="log">';
+  for (const e of S.log.slice(-90).reverse()) h += `<li class="${e.tone === 'quiet' || e.tone === 'choice' ? 'quiet' : e.tone === 'bad' ? 'bad' : ''}"><span class="when">${esc(e.when)}</span>${esc(e.text)}</li>`;
+  return h + '</ol>';
+}
+function renderPanel() {
+  const ph = S.phase;
+  if (ph === 'title' || ph === 'summary') return;
+  if (UI.tab === 'hold') {
+    if (UI.mounted !== 'hold' || !HOLD.cv || !HOLD.cv.isConnected) { els.panel.innerHTML = holdPanel(); els.panel._html = null; UI.mounted = 'hold'; mountHold($('#holdCanvas')); }
+    updateHoldLive();
+    return;
+  }
+  if (UI.tab === 'main' && ph === 'sea') {
+    const sig = voyageSig();
+    if (UI.mounted !== 'voyage' || UI.vsig !== sig) { UI.mounted = 'voyage'; UI.vsig = sig; els.panel.innerHTML = voyagePanel(); els.panel._html = null; }
+    updateVoyageLive();
+    return;
+  }
+  UI.mounted = UI.tab;
+  setHTML(els.panel, UI.tab === 'crew' ? crewPanel() : UI.tab === 'ledger' ? ledgerPanel() : ph === 'camp' ? campPanel() : quayPanel());
+}
+function setTab(t) {
+  if (UI.tab === t) return;
+  UI.tab = t; UI.mounted = ''; els.panel.scrollTop = 0;
+  HOLD.sel = null; HOLD.msg = '';
+  updateTabs(); renderPanel();
+}
+function updateTabs() {
+  const main = S.phase === 'sea' ? ['Voyage', 'ship'] : S.phase === 'camp' ? ['Camp', 'fire'] : ['Quay', 'amphora'];
+  setText(els.mainLabel, main[0]);
+  if (els.mainIcon._k !== main[1]) { els.mainIcon._k = main[1]; els.mainIcon.innerHTML = pxIcon(main[1]); }
+  for (const b of els.tabs.querySelectorAll('button')) {
+    const on = b.dataset.tab === UI.tab;
+    if (b.getAttribute('aria-selected') !== String(on)) b.setAttribute('aria-selected', String(on));
+    const dot = b.querySelector('.dot');
+    const show = b.dataset.tab === 'hold' ? (S.phase !== 'sea' && dockItems(S).length > 0) || (S.phase === 'sea' && atRisk(S).length > 0 && S.voyage && S.voyage.day === 'symi_tri') : false;
+    if (dot.hidden === show) dot.hidden = !show;
+  }
+  els.app.classList.toggle('compact', UI.tab === 'hold');
+}
+function updateHUD() {
+  if (UI.silverShown !== S.silver) {
+    if (UI.silverShown != null) { els.purse.classList.remove('up', 'down'); void els.purse.offsetWidth; els.purse.classList.add(S.silver > UI.silverShown ? 'up' : 'down'); setTimeout(() => els.purse.classList.remove('up', 'down'), 700); }
+    UI.silverShown = S.silver;
+  }
+  setText(els.silver, String(S.silver));
+  let where = '', chips = '';
+  if (S.phase === 'port') { where = PORTS[S.port].name + (S.home ? ' · home' : ' · in port'); chips = `<span class="chip">Hold ${holdUsed(S)}/${holdCells(S)}</span>` + (dockItems(S).length ? `<span class="chip food">${dockItems(S).length} on the quay</span>` : ''); }
+  else if (S.phase === 'sea' || S.phase === 'camp') {
+    const D = S.voyage && DAYS[S.voyage.day];
+    where = S.phase === 'sea' ? 'Day ' + S.dayN + ' · to ' + STOPS[D.to].name : 'Night ' + S.dayN + ' · ' + STOPS[S.camp.stop].name;
+    const pv = provisions(S), n = Math.max(1, mouths(S));
+    chips = `<span class="chip food">Food ${fmtDays(pv.food / n)}</span><span class="chip water">Water ${fmtDays(pv.water / n)}</span>`;
+    if (S.phase === 'sea') chips += `<span class="chip">${esc(WIND[S.voyage.wind].name)}</span>`;
+    if (S.thirsty) chips += '<span class="chip bad">Thirsty</span>'; else if (S.hungry) chips += '<span class="chip bad">Hungry</span>';
+    const hurt = S.crew.filter(c => c.st !== 'ok').length;
+    if (hurt) chips += `<span class="chip bad">${hurt} hurt</span>`;
+  }
+  setText(els.where, where);
+  setHTML(els.chips, chips);
+}
+
+// ---- the story line under the purse ----
+function pumpStory(now) {
+  while (OUT.length) UI.queue.push(OUT.shift());
+  if (UI.queue.length > 3) { const tag = UI.queue.some(e => e.tone === 'dolphins'); UI.queue.splice(0, UI.queue.length - 3); if (tag) UI.dolphins = 9; }
+  if (!UI.queue.length || now - UI.shownAt < UI.holdFor) return;
+  const e = UI.queue.shift();
+  els.stripText.textContent = e.text;
+  els.stripText.className = e.tone === 'bad' || e.tone === 'good' ? e.tone : '';
+  void els.stripText.offsetWidth; els.stripText.classList.add('in');
+  if (e.tone === 'dolphins') UI.dolphins = 9;
+  UI.shownAt = now;
+  UI.holdFor = clamp(1300 + e.text.length * 30, 2200, 5400) * (UI.queue.length > 1 ? 0.55 : 1) / (S.phase === 'sea' ? Math.max(1, UI.speed * DEV.speed * 0.8) : 1);
+}
+function banner(title, sub) { els.banner.innerHTML = esc(title) + (sub ? `<small>${esc(sub)}</small>` : ''); els.banner.classList.add('on'); UI.bannerT = 2.8; }
+const phaseKey = () => [S.phase, S.port || '', S.camp ? S.camp.stop : '', S.dayN].join(':');
+function onPhase() {
+  const key = phaseKey();
+  if (key === UI.lastWhere) return;
+  const prev = UI.lastWhere;
+  UI.lastWhere = key;
+  if (!prev) return;
+  els.banner.classList.remove('on'); UI.bannerT = 0;
+  UI.queue = []; UI.shownAt = -1e9;
+  if (S.phase === 'port') { banner(PORTS[S.port].name, S.home ? 'Home' : 'In port'); setTab('main'); Snd.arrive(); }
+  else if (S.phase === 'camp') { banner(STOPS[S.camp.stop].name, 'Night'); setTab('main'); }
+  else if (S.phase === 'sea' && prev.split(':')[0] !== 'sea') setTab('main');
+  else if (S.phase === 'summary') { closeSheet(); showSummary(); }
+  save();
+}
+
+// ---- the theatre: the title, the opening, and the end of the season ----
+const TH = { mode: null, i: 0 };
+function openTheater(mode) { TH.mode = mode; els.theater.hidden = false; }
+function closeTheater() { TH.mode = null; els.theater.hidden = true; }
+function showTitle() {
+  openTheater('title');
+  const going = S.started && S.phase !== 'summary';
+  els.tTop.innerHTML = '<div class="t-title"><h1>Emporos</h1><p>Chapter I · Halicarnassus</p></div>';
+  els.tText.innerHTML = '<p class="in">Rhodes, 290 BC. A young trader, a small ship, and a sea loan to pay back.</p>';
+  els.tActions.innerHTML = going ? '<button class="btn primary" type="button" data-t="continue">Continue the voyage</button><button class="btn" type="button" data-t="new">Start again</button>' : '<button class="btn primary" type="button" data-t="begin">Begin</button>';
+  els.tHint.textContent = going ? '' : 'Best with the sound on.';
+}
+function playIntro() { openTheater('intro'); TH.i = 0; els.tTop.innerHTML = ''; introStep(); }
+function introStep() {
+  const L = INTRO[TH.i], last = TH.i >= INTRO.length - 1;
+  els.tText.innerHTML = typeof L === 'object' ? `<p class="year in">${esc(L.year)}</p>` : `<p class="in">${esc(L)}</p>`;
+  els.tActions.innerHTML = last ? '<button class="btn primary" type="button" data-t="harbour">Go down to the harbour</button>' : '<button class="btn" type="button" data-t="next">Go on</button>';
+  els.tHint.textContent = last ? '' : 'Tap anywhere to go on';
+}
+function showSummary() {
+  openTheater('summary');
+  const m = S.summary || summarize(S), P = { outran: 'Outran them', paid: 'Paid them off', 'drove off': 'Drove them off', beat: 'Beat them off', robbed: 'Robbed', none: 'Never met them' };
+  const row = (k, v, cls) => `<dt>${k}</dt><dd${cls ? ` class="${cls}"` : ''}>${v}</dd>`;
+  els.tTop.innerHTML = '';
+  els.tText.innerHTML = `<div class="summary"><h2>Chapter I · Halicarnassus</h2><p class="rating">${esc(m.rating)}</p><dl class="tally">` +
+    row('Started with', OWN_SILVER + ' dr, and a sea loan of ' + LOAN.principal) + row('Paid the banker', m.paid + ' dr') + (m.debt ? row('Still owed', m.debt + ' dr') : '') +
+    row('Silver now', m.silver + ' dr') + row('Days at sea', String(m.days)) + row('Pirates', P[m.pirates] || m.pirates) + row('Broken on the way', m.broken ? num(m.broken) : 'Nothing') +
+    row('Crew lost', m.lost.length ? m.lost.map(l => esc(l.name)).join(', ') : 'Nobody') + (m.friend ? row('A friend in Halicarnassus', esc(m.friend)) : '') +
+    `<dt class="total">Profit</dt><dd class="total">${m.profit >= 0 ? '+' : ''}${m.profit} dr</dd></dl>` +
+    `<p>${m.profit >= 40 ? 'Ariston slept for most of a day. Then he went back down to the harbour to ask what Miletus might want.' : m.profit >= 0 ? 'Ariston had his ship, his crew, and his name. In his trade, that is a beginning.' : 'Ariston went home and did sums on a wax tablet until the lamp ran out. Next season would have to be better.'}</p></div>`;
+  els.tActions.innerHTML = '<button class="btn" type="button" data-t="log">Read the voyage again</button><button class="btn primary" type="button" data-t="again">Play Chapter I again</button>';
+  els.tHint.textContent = 'Chapter II, the voyage to Miletus, is still being built.';
+}
+function showLog() {
+  els.tText.innerHTML = '<ol class="log">' + S.log.filter(e => e.tone !== 'quiet' && e.tone !== 'choice').map(e => `<li><span class="when">${esc(e.when)}</span>${esc(e.text)}</li>`).join('') + '</ol>';
+  els.tActions.innerHTML = '<button class="btn primary" type="button" data-t="back">Back</button>';
+  els.tHint.textContent = '';
+}
+function freshGame() {
+  S = newGame((Date.now() & 0x7fffffff) || 7);
+  UI.queue = []; UI.lastWhere = phaseKey(); UI.tab = 'main'; UI.mounted = ''; UI.pirate = null; UI.silverShown = null;
+  els.stripText.textContent = '';
+  save();
+}
+function theaterAct(t, b) {
+  if (t === 'begin') playIntro();
+  else if (t === 'next') { TH.i = Math.min(INTRO.length - 1, TH.i + 1); introStep(); }
+  else if (t === 'harbour') {
+    begin(S); closeTheater(); UI.lastWhere = phaseKey(); setTab('main'); renderPanel(); Snd.mood('port'); save();
+    setTimeout(() => { if (S.phase === 'port') tipOnce('quay', 'Tap a merchant on the quay, or in the picture, to trade.'); }, 900);
+  } else if (t === 'continue') { closeTheater(); renderPanel(); }
+  else if (t === 'new') { if (b.dataset.armed) { freshGame(); playIntro(); } else { b.dataset.armed = '1'; b.textContent = 'Tap again to start over'; } }
+  else if (t === 'again') { freshGame(); playIntro(); }
+  else if (t === 'log') showLog();
+  else if (t === 'back') showSummary();
+}
+
+// ---- what the buttons do ----
+function sellLines(r) { if (r.lines) for (const l of r.lines) say(S, l); return r.lines && r.lines.length ? r.lines.join(' ') : null; }
+function doAct(act, b) {
+  const m = b.dataset.m, g = b.dataset.g;
+  switch (act) {
+    case 'buy': {
+      const r = buy(S, m, g);
+      if (!r.ok) { Snd.nope(); toast(r.msg); break; }
+      Snd.coin(); UI.reply = null; renderSheet();
+      if (r.item.stowed) { delete r.item.stowed; toast('The quay was full, so the crew stowed it in the hold.'); }
+      else tipOnce('dock', 'It is on the quay. Open the Hold to pack it into the ship.');
+      break;
+    }
+    case 'sell': case 'sellall': {
+      let got = 0, n = 0, text = null;
+      do { const r = sell(S, m, g); if (!r.ok) { if (!n) { toast(r.msg); Snd.nope(); } break; } got += r.price; n++; text = sellLines(r) || text; } while (act === 'sellall' && countGood(S, g) > 0);
+      if (n) { Snd.coins(); UI.reply = { text: text || `Sold ${n > 1 ? num(n) + ' for ' + got : 'for ' + got} dr.`, good: got > 0 }; renderSheet(); }
+      break;
+    }
+    case 'haggle': { const r = haggle(S, m); if (r.ok) Snd.yes(); else Snd.no(); UI.reply = { text: r.line || r.msg, good: r.ok }; renderSheet(); break; }
+    case 'refill': { const n = refill(S, 'all'); if (n) { Snd.splash(); toast(cap(num(n)) + ' water jar' + (n > 1 ? 's' : '') + ' filled.'); } renderSheet(); break; }
+    case 'hire': {
+      const h = b.dataset.hire, r = hire(S, h);
+      if (!r.ok) { Snd.nope(); toast(r.msg); break; }
+      Snd.coin(); UI.reply = { text: HIRES[h].joined, good: true }; renderSheet();
+      tipOnce('kit', 'Their gear is on the quay. Pack it into the hold, or they stay ashore.');
+      break;
+    }
+    case 'dismiss': dismiss(S, b.dataset.hire); closeSheet(); break;
+    case 'sail': openSheet('sail'); break;
+    case 'sail-yes': { const r = setSail(S); closeSheet(); if (!r.ok) toast(r.msg); else { Snd.mood('sea'); setTab('main'); } break; }
+    case 'close': closeSheet(); break;
+    case 'camp': { const r = campAct(S, b.dataset.id); if (!r.ok) { toast(r.msg); Snd.nope(); } else if (b.dataset.id === 'spring') Snd.splash(); else Snd.coin(); break; }
+    case 'sleep': { const r = sleep(S, b.dataset.route); if (!r.ok) toast(r.msg); break; }
+    case 'row': setRow(S, b.dataset.v === '1'); break;
+    case 'half': setHalf(S, b.dataset.v === '1'); break;
+    case 'speed': UI.speed = +b.dataset.v; break;
+    case 'autopack': {
+      const before = dockItems(S).length, n = autoPack(S), left = dockItems(S).length;
+      if (n) Snd.place();
+      HOLD.msg = left ? `The crew packed ${num(n)} of ${num(before)}. The rest would not fit. Sell something, or pack it more cleverly.` : 'The crew packed everything. It is not always the best way, but it is a way.';
+      break;
+    }
+    case 'unpack': { unpackAll(S); Snd.place(); HOLD.msg = ''; break; }
+    case 'choose': {
+      const id = S.pending, title = EVENTS[id].title, c = b.dataset.c, lines = resolveEvent(S, c);
+      if (!lines.length) break;
+      if (c === 'fight') { if (hasBolt(S)) Snd.bolt(); Snd.clash(); if (UI.pirate) UI.pirate.fight = true; }
+      else if (id === 'squall' && c === 'ride') Snd.splash();
+      UI.outcome = { title, lines }; renderSheet(true); save();
+      break;
+    }
+    case 'continue': UI.outcome = null; if (S.pending) renderSheet(true); else { closeSheet(); if (UI.pirate) UI.pirate.leaving = true; } break;
+    case 'repay': { const r = repay(S); if (!r.ok) toast(r.msg); else { Snd.coins(); closeSheet(); } break; }
+    case 'sound': toggleSound(); renderSheet(); break;
+    case 'restart': if (UI.armed === 'restart') { closeSheet(); freshGame(); playIntro(); } else { UI.armed = 'restart'; renderSheet(); } break;
+  }
+  renderPanel(); updateHUD(); updateTabs();
+  save();
+}
+function toggleSound() { Snd.setMuted(!Snd.muted); try { localStorage.setItem(SOUND_KEY, Snd.muted ? '1' : '0'); } catch (e) { /* ignore */ } paintSound(); }
+function paintSound() { els.soundBtn.innerHTML = pxIcon(Snd.muted ? 'soundOff' : 'soundOn'); els.soundBtn.setAttribute('aria-pressed', String(!Snd.muted)); }
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) {
+    if (TH.mode === 'intro' && e.target.closest('#theater')) { Snd.init(); if (TH.i < INTRO.length - 1) { TH.i++; introStep(); } }
+    else if (e.target === els.sheet && UI.sheet && UI.sheet.kind !== 'event') closeSheet();
+    else if (e.target.closest('#strip')) setTab('ledger');
+    return;
+  }
+  Snd.init();
+  if (b.dataset.t) return theaterAct(b.dataset.t, b);
+  if (b.dataset.tab) return setTab(b.dataset.tab);
+  if (b.dataset.act) return doAct(b.dataset.act, b);
+  if (b.id === 'menuBtn') return openSheet('menu');
+  if (b.id === 'soundBtn') return toggleSound();
+  if (b.dataset.m) return openSheet('merchant', b.dataset.m);
+  if (b.dataset.hire) return openSheet('hire', b.dataset.hire);
+});
+els.strip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTab('ledger'); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && UI.sheet && UI.sheet.kind !== 'event') closeSheet(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+window.addEventListener('pagehide', save);
+
+// ---- the loop ----
+function syncSpots(spots, fit, key) {
+  if (UI.spotsKey === key) return;
+  UI.spotsKey = key;
+  els.hotspots.innerHTML = spots.map(sp => { const m = MERCHANTS[sp.id]; return `<button class="hotspot" type="button" data-m="${sp.id}" aria-label="${esc(m.name)}, ${esc(m.role)}" style="left:${Math.round(sp.x0 * fit.P - fit.ox)}px;top:${sp.y0 * fit.P}px;width:${(sp.x1 - sp.x0) * fit.P}px;height:${(sp.y1 - sp.y0) * fit.P}px"></button>`; }).join('');
+}
+function seaOpts() {
+  const v = S.voyage, idx = Object.keys(DAYS).indexOf(v.day);
+  return { clock: v.clock, storm: UI.storm, calm: v.wind === 'calm', row: v.row && !S.pending, crew: Math.min(8, S.crew.length), seed: 3 + idx * 5, scroll: idx * 700 + v.prog * 240, pirate: UI.pirate, dolphins: UI.dolphins };
+}
+function drawMain(t) {
+  const fit = fitPixels(els.scene, els.stage.clientWidth, els.stage.clientHeight, 140);
+  G = els.scene.getContext('2d'); G.imageSmoothingEnabled = false;
+  if (S.phase === 'sea' && S.voyage) { syncSpots([], fit, 'none'); drawSea(fit.W, fit.H, t, seaOpts()); return; }
+  if (S.phase === 'camp' && S.camp) { syncSpots([], fit, 'none'); if (S.camp.stop === 'atsea') drawAnchor(fit.W, fit.H, t); else drawCamp(fit.W, fit.H, t, S.camp.stop); return; }
+  const spots = [], port = S.port || 'rhodes';
+  (port === 'halic' ? drawHalic : drawRhodes)(fit.W, fit.H, t, { clock: 0.3, stage: S.home ? 2 : 1, spots, wants: UI.wants });
+  if (S.phase === 'port' && !els.app.classList.contains('compact')) syncSpots(spots, fit, port + fit.W + 'x' + fit.H + ':' + fit.P); else syncSpots([], fit, 'none');
+}
+function drawTheater(t) {
+  const view = els.tcanvas.parentElement, fit = fitPixels(els.tcanvas, view.clientWidth, view.clientHeight, 150);
+  G = els.tcanvas.getContext('2d'); G.imageSmoothingEnabled = false;
+  if (TH.mode === 'title') drawSea(fit.W, fit.H, t, { clock: 0.06, storm: 0, calm: false, row: false, crew: 6, seed: 11, scroll: t * 6, pirate: null, dolphins: 0 });
+  else drawRhodes(fit.W, fit.H, t, { clock: TH.mode === 'summary' ? 0.93 : 0.3, stage: TH.mode === 'summary' ? 2 : 1, walkers: true });
+}
+let lastFrame = 0, uiAcc = 1, saveAcc = 0;
+function frame(now) {
+  const dt = lastFrame ? Math.min(0.25, (now - lastFrame) / 1000) : 0, t = now / 1000;
+  lastFrame = now;
+  const sheetUp = !!UI.sheet, live = S.phase === 'sea' && !S.pending && !sheetUp && els.theater.hidden;
+  if (live) tick(S, dt * UI.speed * DEV.speed);
+  if (S.pending && (!UI.sheet || UI.sheet.kind !== 'event')) {
+    closeSheet(); openSheet('event'); Snd.event();
+    if (S.pending === 'pirates') { Snd.horn(); UI.pirate = { near: 0, fight: false, leaving: false }; }
+    if (S.pending === 'squall') Snd.mood('storm');
+  }
+  if (UI.pirate) {
+    if (S.pending === 'pirates' || S.pending === 'caught') UI.pirate.near = Math.min(1, UI.pirate.near + dt * 0.9);
+    else if (!UI.sheet || UI.pirate.leaving) { UI.pirate.near -= dt * 0.22; if (UI.pirate.near <= 0) UI.pirate = null; }
+  }
+  const stormy = S.phase === 'sea' && S.voyage && (S.voyage.wind === 'storm' || S.pending === 'squall');
+  UI.storm = clamp(UI.storm + (stormy ? dt * 0.8 : -dt * 0.4), 0, 1);
+  UI.dolphins = Math.max(0, UI.dolphins - dt);
+  const mood = S.phase === 'port' ? 'port' : S.phase === 'camp' ? 'night' : stormy ? 'storm' : 'sea';
+  if (mood !== UI.mood && Snd.ctx) { UI.mood = mood; Snd.mood(mood); }
+  onPhase();
+  pumpStory(now);
+  if (UI.bannerT > 0) { UI.bannerT -= dt; if (UI.bannerT <= 0) els.banner.classList.remove('on'); }
+  if (els.theater.hidden) drawMain(t); else drawTheater(t);
+  if (UI.tab === 'hold' && els.theater.hidden) drawHold();
+  uiAcc += dt;
+  if (uiAcc >= 0.12) {
+    uiAcc = 0;
+    UI.wants = new Set(S.phase === 'port' ? merchantsAt(S.port).filter(id => wants(S, id).length || (MERCHANTS[id].bank && S.home && !S.loan.paid)) : []);
+    updateHUD(); renderPanel(); updateTabs();
+  }
+  saveAcc += dt;
+  if (saveAcc > 4) { saveAcc = 0; save(); }
+  if (Snd.ctx) Snd.music(S.phase === 'port' ? 'port' : 'sea');
+  requestAnimationFrame(frame);
+}
+
+// ---- boot ----
+function start(data) {
+  try { Snd.muted = localStorage.getItem(SOUND_KEY) === '1'; } catch (e) { /* ignore */ }
+  els.coinImg.src = scaledURL(COIN, 2);
+  els.meander.style.backgroundImage = `url(${scaledURL(MEANDER, 2)})`;
+  for (const el of document.querySelectorAll('[data-icon]')) el.innerHTML = pxIcon(el.dataset.icon);
+  els.menuBtn.innerHTML = pxIcon('menu');
+  paintSound();
+  const hot = data && data.state && data.state.v === VERSION && data.state.items ? data.state : null;
+  S = hot || loadSaved() || newGame((Date.now() & 0x7fffffff) || 7);
+  if (data && data.tab) UI.tab = data.tab;
+  UI.lastWhere = phaseKey();
+  if (S.log.length) els.stripText.textContent = S.log[S.log.length - 1].text;
+  if (S.phase === 'summary') showSummary();
+  else if (!hot) showTitle();
+  renderPanel(); updateTabs(); updateHUD();
+  if (window.ResizeObserver) new ResizeObserver(() => { if (HOLD.cv && HOLD.cv.isConnected) sizeHold(); }).observe(els.panel);
+  requestAnimationFrame(frame);
+}
+const hotApi = window.claude && window.claude.hot;
+if (hotApi && typeof hotApi.snapshot === 'function') { try { hotApi.snapshot(() => ({ state: S, tab: UI.tab })); } catch (e) { /* ignore */ } }
+window.__emp = { state: () => S, speed: v => { DEV.speed = v; }, ui: UI, hold: HOLD, fns: { buy, sell, haggle, hire, autoPack, setSail, campAct, sleep, needsRoute, resolveEvent, repay, sailCheck, provisions, moveItem, fits, dockItems, atRisk, eta, countGood, sellPrice, merchantsAt, isCargo } };
+if (hotApi && typeof hotApi.ready === 'function') hotApi.ready(start);
+else start((hotApi && hotApi.data) || {});
+})();
+</script>
+</body>
+</html>

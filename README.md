@@ -68,3 +68,7 @@ npm test
 - Kuitems et al., "Evidence for European presence in the Americas in AD 1021", *Nature* (2021), for the year in the title.
 
 All the art and sound is drawn and synthesized in code.
+
+## Also in this repository: Emporos
+
+`emporos/` is a second game, in progress: a pixel-art trading game for phones about a young trader from Rhodes in 290 BC, in nine voyages. Chapter I, Rhodes to Halicarnassus and back, is playable. It follows the same layout as Vinland 1021, with one file for the game, a build script, a balance simulation and a phone play test. See [`emporos/README.md`](emporos/README.md).
